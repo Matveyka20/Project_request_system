@@ -72,3 +72,11 @@ python -m pip install -e .
 python -m request_system
 python -m unittest discover -s tests -v
 ```
+
+## Документация и материалы
+
+- [Предметные модули и их распределение по слоям](docs/modular-decomposition.md)
+- [Концептуальные сущности и связи](docs/domain-entities.md)
+- [ER-диаграмма таблиц](docs/architecture/er-diagram.md)
+- [SQL-схема, тестовые данные и примеры запросов](docs/sql/README.md)
+- [Прототипы интерфейса в Figma и PNG-экспорты](docs/prototypes/README.md)
