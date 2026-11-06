@@ -1,0 +1,49 @@
+@startuml
+ title Целевая компонентная диаграмма Request System
+ left to right direction
+ skinparam componentStyle uml2
+ skinparam packageStyle rectangle
+
+ note top
+   Целевая схема, а не перечень уже реализованных компонентов.
+   Один предметный модуль не обязан иметь отдельную пару
+   controller/service/repository.
+ end note
+
+ package "Presentation" as presentation {
+   component "CLI adapter\nimplemented placeholder" as cli
+   component "RequestController\nplanned" as controller
+ }
+
+ package "Application / domain" as application {
+   component "RequestService\nplanned use cases" as service
+   component "Domain model\nUser · Request · Status\nCategory · Comment" as model
+ }
+
+ package "Repository ports" as ports {
+   interface "RequestRepository\nrequest + status history + comments" as request_repo
+   interface "UserRepository" as user_repo
+   interface "CategoryRepository" as category_repo
+ }
+
+ package "Infrastructure" as infrastructure {
+   component "Persistence adapter\nplanned; technology TBD" as adapter
+   database "Database\nplanned; technology TBD" as db
+ }
+
+ cli --> controller : future commands
+ controller --> service : runtime call
+ service --> request_repo : runtime call
+ service ..> user_repo : if use case needs it
+ service ..> category_repo : if use case needs it
+ adapter ..|> request_repo : implements port
+ adapter ..|> user_repo : implements port
+ adapter ..|> category_repo : implements port
+ adapter --> db : runtime I/O
+ service ..> model : uses
+
+ note bottom of adapter
+   Adapter depends on repository abstractions;
+   service does not import infrastructure.
+ end note
+@enduml

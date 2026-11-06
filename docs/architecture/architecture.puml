@@ -1,0 +1,49 @@
+@startuml
+ title Целевая слоистая архитектура Request System
+ top to bottom direction
+
+ note top
+   Это целевая схема учебного проекта; функции пока не реализованы.
+   Стрелки сплошной линией показывают вызовы во время выполнения.
+   Штриховая реализация показывает зависимость кода адаптера от порта.
+ end note
+
+ package "1. Presentation / Controller" as presentation {
+   component "CLI / UI adapters" as ui
+   component "Request controller" as controller <<planned>>
+ }
+
+ package "2. Service" as services {
+   component "Request use cases\n(validation, assignment, status workflow)" as request_service <<planned>>
+   component "User / category use cases\n(only when required by scenarios)" as supporting_services <<planned>>
+   component "Domain concepts\nUser, Request, Status, Category, Comment" as domain <<planned>>
+ }
+
+ package "3. Repository contracts" as repositories {
+   interface "RequestRepository\n(requests, status history, comments)" as request_port
+   interface "UserRepository" as user_port
+   interface "CategoryRepository" as category_port
+ }
+
+ package "4. Infrastructure" as infrastructure {
+   component "Persistence adapter\n(technology TBD)" as adapter <<planned>>
+   database "Database\n(technology TBD)" as database <<planned>>
+ }
+
+ ui --> controller : input
+ controller --> request_service : invoke
+ request_service --> request_port : calls port
+ request_service ..> domain : uses
+ supporting_services ..> user_port : when needed
+ supporting_services ..> category_port : when needed
+ adapter ..|> request_port : implements
+ adapter ..|> user_port : implements
+ adapter ..|> category_port : implements
+ adapter --> database : reads / writes
+
+ note bottom of request_port
+   Compile-time dependency points inward:
+   infrastructure implements repository contracts.
+   Runtime calls are delegated to the configured adapter.
+ end note
+@enduml

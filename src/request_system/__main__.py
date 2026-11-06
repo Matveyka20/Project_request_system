@@ -1,9 +1,6 @@
-"""Command-line entry point for the request system."""
+"""Command-line application entry point."""
 
-
-def main() -> int:
-    print("Request System is ready.")
-    return 0
+from request_system.presentation.cli import main
 
 
 if __name__ == "__main__":
