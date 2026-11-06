@@ -1,0 +1,57 @@
+@startuml
+left to right direction
+skinparam packageStyle rectangle
+
+actor "Заявитель" as Applicant
+actor "Оператор / диспетчер" as Operator
+actor "Исполнитель" as Assignee
+actor "Контролёр результата" as Controller
+
+rectangle "Система обработки заявок" {
+  usecase "Войти в систему" as Login
+  usecase "Создать заявку" as CreateRequest
+  usecase "Просмотреть свои заявки\nи историю изменений" as TrackRequest
+  usecase "Дополнить заявку /\nответить на уточнение" as AddDetails
+  usecase "Отменить заявку\nдо начала выполнения" as CancelRequest
+  usecase "Проверить заявку" as ReviewRequest
+  usecase "Запросить уточнение" as RequestDetails
+  usecase "Указать категорию\nи приоритет" as ClassifyRequest
+  usecase "Назначить или\nпереназначить исполнителя" as AssignRequest
+  usecase "Просмотреть назначенные\nзаявки" as ViewAssigned
+  usecase "Обновить ход выполнения\nи зафиксировать результат" as RecordProgress
+  usecase "Передать результат\nна проверку" as SubmitResult
+  usecase "Подтвердить выполнение\nили сообщить о проблеме" as ApplicantFeedback
+  usecase "Проверить результат" as VerifyResult
+  usecase "Принять результат\nи закрыть заявку" as AcceptResult
+  usecase "Вернуть исполнителю\nна доработку" as RequestRework
+  usecase "Получить уведомления\nоб изменениях заявки" as ReceiveNotifications
+}
+
+Applicant --> Login
+Applicant --> CreateRequest
+Applicant --> TrackRequest
+Applicant --> AddDetails
+Applicant --> CancelRequest
+Applicant --> ApplicantFeedback
+Applicant --> ReceiveNotifications
+
+Operator --> Login
+Operator --> ReviewRequest
+Operator --> RequestDetails
+Operator --> ClassifyRequest
+Operator --> AssignRequest
+Operator --> ReceiveNotifications
+
+Assignee --> Login
+Assignee --> ViewAssigned
+Assignee --> AddDetails
+Assignee --> RecordProgress
+Assignee --> SubmitResult
+Assignee --> ReceiveNotifications
+
+Controller --> Login
+Controller --> VerifyResult
+Controller --> AcceptResult
+Controller --> RequestRework
+Controller --> ReceiveNotifications
+@enduml

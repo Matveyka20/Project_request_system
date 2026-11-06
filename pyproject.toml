@@ -1,0 +1,16 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "request-system"
+version = "0.1.0"
+description = "Система обработки заявок"
+readme = "README.md"
+requires-python = ">=3.10"
+
+[project.scripts]
+request-system = "request_system.__main__:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
