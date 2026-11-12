@@ -8,6 +8,9 @@ version = "0.1.0"
 description = "Система обработки заявок"
 readme = "README.md"
 requires-python = ">=3.10"
+dependencies = [
+    "click>=8.0",
+]
 
 [project.scripts]
 request-system = "request_system.__main__:main"

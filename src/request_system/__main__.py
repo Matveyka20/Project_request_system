@@ -7,7 +7,7 @@ import sys
 from request_system.application.ports.persistence import PersistenceError
 from request_system.application.services.request_service import RequestService
 from request_system.infrastructure.database.sqlite import SQLiteDatabase
-from request_system.presentation.cli import run_registration_cli
+from request_system.presentation import run_cli
 
 
 def main() -> int:
@@ -28,8 +28,9 @@ def main() -> int:
         print(f"Ошибка запуска хранилища: {error}", file=sys.stderr)
         return 3
 
-    return run_registration_cli(RequestService(database.unit_of_work))
+    return run_cli(RequestService(database.unit_of_work))
 
 
 if __name__ == "__main__":
     raise SystemExit(main())
+
