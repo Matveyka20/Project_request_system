@@ -19,6 +19,15 @@ Get-Content docs/sql/schema.sql | sqlite3 request-system-test.db
 Get-Content docs/sql/seed.sql | sqlite3 request-system-test.db
 ```
 
+`sample-data.sqlite3` is a committed, pre-seeded database for trying the CLI. Copy it before running the application because request registration writes to the database:
+
+```powershell
+Copy-Item docs/sql/sample-data.sqlite3 request-system-demo.db
+$env:REQUEST_SYSTEM_DB = (Resolve-Path request-system-demo.db).Path
+python -m request_system
+Remove-Item Env:REQUEST_SYSTEM_DB
+```
+
 ## CRUD examples
 
 `crud-examples.sql` demonstrates inserts, at least three `SELECT ... WHERE` filters, multiple joined `SELECT` queries, an aggregate, constrained updates, and child-first deletes. It uses reserved demo IDs, runs in a transaction, and ends with `ROLLBACK`, so the test database is unchanged. Execute it only against the dedicated test database:
