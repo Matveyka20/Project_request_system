@@ -65,36 +65,63 @@ tests/
 
 Пакеты `services` и `repositories` верхнего уровня сохранены как заготовки для следующих сценариев. Добавляйте компоненты вместе с вертикальными пользовательскими сценариями, а не создавайте заранее одинаковые репозитории на каждую сущность.
 
-## Локальный запуск (PowerShell)
+## Локальная установка и запуск
 
-Установите Python 3.10 или новее и убедитесь, что команда `python --version` доступна в `PATH`. Выполняйте команды из корня репозитория:
+### Требования
 
-```powershell
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1
-python -m pip install -e .
-```
+- **Python** 3.8 или новее (проверка: `python --version`)
+- **pip** — менеджер пакетов Python
+- **git** — система контроля версий
 
-Если PowerShell блокирует `Activate.ps1`, разрешите запуск скриптов только для текущего процесса и активируйте окружение повторно:
+### Установка окружения
 
-```powershell
-Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
-.\.venv\Scripts\Activate.ps1
-```
+Выполняйте все команды из корня репозитория:
 
-Приложение при запуске создаёт таблицы в `request-system.db` в корне проекта, если их ещё нет. Схему также можно инициализировать отдельно:
+1. **Создайте виртуальное окружение:**
+   ```powershell
+   python -m venv .venv
+   ```
+
+2. **Активируйте виртуальное окружение:**
+   ```powershell
+   .\.venv\Scripts\Activate.ps1
+   ```
+
+   Если PowerShell блокирует запуск скриптов, разрешите временно:
+   ```powershell
+   Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+   .\.venv\Scripts\Activate.ps1
+   ```
+
+3. **Установите зависимости:**
+   ```powershell
+   python -m pip install -e .
+   ```
+
+### Инициализация базы данных
+
+Приложение автоматически создаёт таблицы при первом запуске в файл `request-system.db`. Вы также можете инициализировать схему вручную:
 
 ```powershell
 python -c "from pathlib import Path; from request_system.infrastructure.database.sqlite import SQLiteDatabase; SQLiteDatabase('request-system.db', Path('docs/sql/schema.sql')).initialize()"
 ```
 
-Запустите CLI:
+### Использование CLI
 
+#### Справка по командам
 ```powershell
-python -m request_system
+python -m request_system --help
 ```
 
-Для регистрации нужны существующие в базе заявитель, категория и статус `Новая`. Чтобы опробовать CLI на демонстрационных данных, сделайте копию fixture и укажите её через переменную окружения:
+#### Регистрация заявки
+
+Для регистрации нужны существующие в базе заявитель, категория и статус `Новая`:
+
+```powershell
+python -m request_system create --help
+```
+
+Пример (с помощью демонстрационных данных):
 
 ```powershell
 $demoDb = '.\request-system-demo.db'
@@ -102,13 +129,56 @@ if (Test-Path $demoDb) { throw 'Выберите другой путь для к
 Copy-Item .\docs\sql\sample-data.sqlite3 $demoDb
 $env:REQUEST_SYSTEM_DB = (Resolve-Path $demoDb).Path
 python -m request_system
+```
+
+В приглашении fixture введите:
+- ID заявителя: `1`
+- ID категории: `1`
+- Описание заявки: любой текст
+
+Завершите работу:
+```powershell
 Remove-Item Env:REQUEST_SYSTEM_DB
 ```
 
-В fixture введите ID заявителя `1`, категории `1` и произвольное описание. Запуск тестов:
+#### Просмотр заявок
+
+```powershell
+python -m request_system get <id>        # Получить заявку по ID
+python -m request_system list            # Список всех заявок
+```
+
+### Тестирование
+
+Запустите все тесты:
 
 ```powershell
 python -m unittest discover -s tests -v
+```
+
+Или с использованием pytest (если установлен):
+
+```powershell
+pytest tests/ -v
+```
+
+### Полный цикл разработки
+
+```powershell
+# 1. Активируйте окружение
+.\.venv\Scripts\Activate.ps1
+
+# 2. Установите зависимости в режиме разработки
+python -m pip install -e .
+
+# 3. Инициализируйте БД
+python -c "from pathlib import Path; from request_system.infrastructure.database.sqlite import SQLiteDatabase; SQLiteDatabase('request-system.db', Path('docs/sql/schema.sql')).initialize()"
+
+# 4. Запустите тесты
+python -m unittest discover -s tests -v
+
+# 5. Используйте CLI
+python -m request_system --help
 ```
 
 ## Документация и материалы
