@@ -662,6 +662,231 @@ curl -X PUT http://localhost:8000/api/requests/123/status \
   }'
 ```
 
+## 🐳 Docker
+
+Приложение готово к развертыванию в контейнере с использованием Docker и Docker Compose.
+
+### Требования
+
+- Docker 20.10+
+- Docker Compose 1.29+
+
+### Сборка Docker образа
+
+Построить Docker образ для приложения:
+
+```bash
+# Сборка образа
+docker build -t request-system:latest .
+
+# С tag для репозитория
+docker build -t myregistry/request-system:1.1.0 .
+```
+
+### Запуск приложения с Docker
+
+Запустить контейнер с локальным SQLite:
+
+```bash
+# Базовый запуск
+docker run -p 8000:8000 request-system:latest
+
+# С переменными окружения
+docker run -p 8000:8000 \
+  -e APP_ENV=development \
+  -e APP_DEBUG=true \
+  -e DATABASE_URL=sqlite:///./requests.db \
+  request-system:latest
+
+# С монтированием volume для БД
+docker run -p 8000:8000 \
+  -v $(pwd)/data:/app/data \
+  request-system:latest
+```
+
+### Docker Compose (Рекомендуется)
+
+Docker Compose упрощает управление контейнером и переменными окружения:
+
+#### 1. Подготовка
+
+```bash
+# Скопируйте .env.example в .env
+cp .env.example .env
+
+# Отредактируйте .env под вашу конфигурацию (если нужно)
+# nano .env
+```
+
+#### 2. Запуск сервиса
+
+```bash
+# Запустить в фоне
+docker-compose up -d
+
+# Запустить с выводом логов
+docker-compose up
+
+# Пересобрать образ и запустить
+docker-compose up -d --build
+```
+
+#### 3. Просмотр логов
+
+```bash
+# Все логи
+docker-compose logs -f
+
+# Только логи приложения
+docker-compose logs -f app
+```
+
+#### 4. Остановка сервиса
+
+```bash
+# Остановить контейнеры
+docker-compose stop
+
+# Остановить и удалить контейнеры
+docker-compose down
+
+# Остановить и удалить всё (включая volumes)
+docker-compose down -v
+```
+
+### Доступ к API в Docker
+
+Когда контейнер запущен, API доступна по адресу:
+
+| Ресурс | URL |
+|--------|-----|
+| **Swagger UI** | http://localhost:8000/docs |
+| **ReDoc** | http://localhost:8000/redoc |
+| **API Endpoints** | http://localhost:8000/api/requests |
+| **Health Check** | http://localhost:8000/health |
+| **OpenAPI JSON** | http://localhost:8000/openapi.json |
+
+### Примеры запросов из Docker
+
+```bash
+# Проверить здоровье сервиса
+curl http://localhost:8000/health
+
+# Получить список заявок
+curl http://localhost:8000/api/requests
+
+# Создать заявку
+curl -X POST http://localhost:8000/api/requests \
+  -H "Content-Type: application/json" \
+  -d '{
+    "description": "Тестовая заявка из Docker",
+    "category_id": 1,
+    "applicant_user_id": 1,
+    "priority": "Средний"
+  }'
+```
+
+### Переменные окружения в Docker
+
+Используйте файл `.env` или переданные переменные для конфигурации:
+
+```env
+# Application
+APP_ENV=development              # development, staging, production
+APP_DEBUG=false                  # Отладка
+APP_PORT=8000                    # Порт контейнера
+APP_WORKERS=4                    # Workers (production only)
+
+# Database
+DATABASE_URL=sqlite:///./requests.db  # Путь БД
+DATABASE_POOL_SIZE=10            # Размер пула
+
+# API
+API_TITLE=Request System API     # Название API
+API_VERSION=1.1.0                # Версия API
+API_CORS_ORIGINS=*               # CORS origins
+
+# Logging
+LOG_LEVEL=INFO                   # DEBUG, INFO, WARNING, ERROR
+```
+
+### Мониторинг контейнера
+
+#### Health Check
+
+Контейнер включает встроенный health check:
+
+```bash
+# Проверить статус контейнера
+docker ps --format "table {{.Names}}\t{{.Status}}"
+
+# Должен показать: "healthy" или "starting"
+```
+
+#### Просмотр ресурсов
+
+```bash
+# Использование CPU и памяти
+docker stats request-system-api
+
+# Информация о контейнере
+docker inspect request-system-api
+```
+
+### Production Deployment
+
+#### Multi-stage Build
+
+Dockerfile использует multi-stage build для оптимизации размера образа:
+
+- **Stage 1 (Builder)**: Установка зависимостей, сборка wheels
+- **Stage 2 (Runtime)**: Компактный финальный образ с non-root пользователем
+
+Размер образа: ~150MB (с python:3.11-slim базовым образом)
+
+#### Security Best Practices
+
+Контейнер включает встроенные security меры:
+
+- ✅ Non-root пользователь (`appuser`)
+- ✅ Минимальный базовый образ (`python:3.11-slim`)
+- ✅ Read-only файловая система (можно настроить)
+- ✅ Health check endpoint для мониторинга
+- ✅ Отсутствие секретов в образе (используются env переменные)
+
+#### Использование с оркестраторами (Kubernetes, Swarm)
+
+```yaml
+# Kubernetes deployment пример
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: request-system-api
+spec:
+  replicas: 3
+  template:
+    spec:
+      containers:
+      - name: api
+        image: myregistry/request-system:1.1.0
+        ports:
+        - containerPort: 8000
+        env:
+        - name: APP_ENV
+          value: "production"
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: db-credentials
+              key: url
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 10
+          periodSeconds: 30
+```
+
 ### Дополнительные ресурсы
 
 - **Swagger UI** (Интерактивное тестирование API): http://localhost:8000/docs

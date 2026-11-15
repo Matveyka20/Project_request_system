@@ -1,0 +1,98 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: request-system-api
+    
+    # Port mapping
+    ports:
+      - "${APP_PORT:-8000}:8000"
+    
+    # Environment variables
+    environment:
+      APP_ENV: ${APP_ENV:-development}
+      APP_DEBUG: ${APP_DEBUG:-true}
+      APP_PORT: 8000
+      APP_HOST: 0.0.0.0
+      APP_WORKERS: ${APP_WORKERS:-4}
+      APP_NAME: ${APP_NAME:-Request System}
+      DATABASE_URL: ${DATABASE_URL:-sqlite:///./requests.db}
+      DATABASE_POOL_SIZE: ${DATABASE_POOL_SIZE:-10}
+      DATABASE_ECHO_SQL: ${DATABASE_ECHO_SQL:-false}
+      API_PREFIX: ${API_PREFIX:-/api}
+      API_TITLE: ${API_TITLE:-Request System API}
+      API_VERSION: ${API_VERSION:-1.1.0}
+      API_CORS_ORIGINS: ${API_CORS_ORIGINS:-*}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    
+    # Volume mounts (for development)
+    volumes:
+      # Mount app directory for live code reloading in development
+      - .:/app
+      # Mount database directory if using SQLite
+      - ./data:/app/data
+    
+    # Restart policy
+    restart: unless-stopped
+    
+    # Resource limits (optional, customize as needed)
+    # deploy:
+    #   resources:
+    #     limits:
+    #       cpus: '1'
+    #       memory: 512M
+    #     reservations:
+    #       cpus: '0.5'
+    #       memory: 256M
+    
+    # Health check configuration
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
+    
+    # Logging
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: 3
+    
+    # Network
+    networks:
+      - request-system
+
+  # Optional: PostgreSQL service for production
+  # Uncomment and configure if using PostgreSQL instead of SQLite
+  # db:
+  #   image: postgres:15-alpine
+  #   container_name: request-system-db
+  #   environment:
+  #     POSTGRES_DB: ${DB_NAME:-requests}
+  #     POSTGRES_USER: ${DB_USER:-postgres}
+  #     POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+  #   ports:
+  #     - "5432:5432"
+  #   volumes:
+  #     - postgres_data:/var/lib/postgresql/data
+  #   restart: unless-stopped
+  #   networks:
+  #     - request-system
+  #   healthcheck:
+  #     test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres}"]
+  #     interval: 10s
+  #     timeout: 5s
+  #     retries: 5
+
+networks:
+  request-system:
+    driver: bridge
+
+volumes:
+  # postgres_data:
+  #   driver: local

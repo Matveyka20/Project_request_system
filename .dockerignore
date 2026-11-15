@@ -1,0 +1,73 @@
+# Git files
+.git
+.gitignore
+.github
+
+# IDE settings
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# Python cache and compiled files
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+ENV/
+
+# Virtual environments
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Testing and coverage
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.hypothesis/
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+request-system.db
+request-system-demo.db
+requests.db
+
+# Environment files (NEVER include in Docker image)
+.env
+.env.*
+!.env.example
+
+# OS files
+.DS_Store
+Thumbs.db
+*.swp
+
+# Documentation and development
+README.md
+docs/
+tests/
+Makefile
+*.md
+
+# Mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Type checking
+.ruff_cache/
+
+# IDE specific
+*.iml
+*.sublime-*

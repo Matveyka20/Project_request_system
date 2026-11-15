@@ -28,6 +28,25 @@ def create_app(unit_of_work_factory: Callable[[], UnitOfWork]) -> FastAPI:
 
     service = RequestService(unit_of_work_factory)
 
+    # Health check endpoint for monitoring and Docker healthchecks
+    @app.get(
+        "/health",
+        tags=["Health"],
+        summary="Health check endpoint",
+        description="Returns the health status of the API service. Used by load balancers and container orchestration.",
+        status_code=200,
+    )
+    async def health_check():
+        """Health check endpoint for monitoring."""
+        return JSONResponse(
+            status_code=200,
+            content={
+                "status": "ok",
+                "version": settings.api_version,
+                "environment": settings.app_env,
+            }
+        )
+
     @app.get(
         "/api/requests",
         response_model=ListRequestsResponse,
