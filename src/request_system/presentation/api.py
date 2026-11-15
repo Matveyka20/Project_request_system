@@ -5,6 +5,7 @@ from typing import Callable
 from fastapi import FastAPI, Query
 from fastapi.responses import JSONResponse
 
+from request_system.config import settings
 from request_system.application.ports.persistence import UnitOfWork
 from request_system.application.services.request_service import RequestService
 from request_system.presentation.models import (
@@ -17,12 +18,12 @@ from request_system.presentation.models import (
 def create_app(unit_of_work_factory: Callable[[], UnitOfWork]) -> FastAPI:
     """Create and configure the FastAPI application with OpenAPI documentation."""
     app = FastAPI(
-        title="Request Management System API",
+        title=settings.api_title,
         description="Production-grade REST API for managing support requests with advanced search, filtering, sorting, and pagination capabilities.",
-        version="1.0.0",
-        docs_url="/docs",
-        redoc_url="/redoc",
-        openapi_url="/openapi.json",
+        version=settings.api_version,
+        docs_url=settings.api_docs_url,
+        redoc_url=settings.api_redoc_url,
+        openapi_url=settings.api_openapi_url,
     )
 
     service = RequestService(unit_of_work_factory)

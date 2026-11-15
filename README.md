@@ -98,6 +98,117 @@ tests/
    python -m pip install -e .
    ```
 
+### Конфигурация
+
+Приложение использует систему конфигурации на основе переменных окружения с поддержкой файлов `.env`.
+
+#### Быстрый старт
+
+Скопируйте файл `.env.example` в `.env` и настройте нужные значения:
+
+```bash
+cp .env.example .env
+# Отредактируйте .env в текстовом редакторе
+```
+
+#### Переменные окружения
+
+Все параметры можно переопределить через переменные окружения:
+
+**Окружение и сервер:**
+- `APP_ENV` - Режим работы: `development`, `staging`, `production` (по умолчанию: `development`)
+- `APP_DEBUG` - Включить режим отладки: `true` или `false` (по умолчанию: `true`)
+- `APP_PORT` - Порт сервера API (по умолчанию: `8000`)
+- `APP_HOST` - IP адрес для прослушивания (по умолчанию: `0.0.0.0`)
+- `APP_WORKERS` - Количество Uvicorn workers для production (по умолчанию: `4`)
+- `APP_NAME` - Название приложения (по умолчанию: `Request System`)
+
+**База данных:**
+- `DATABASE_URL` - Строка подключения (по умолчанию: `sqlite:///./requests.db`)
+  - SQLite: `sqlite:///./requests.db` (относительный путь)
+  - SQLite: `sqlite:////tmp/db.sqlite3` (абсолютный путь)
+  - PostgreSQL: `postgresql://user:password@localhost:5432/dbname`
+- `DATABASE_POOL_SIZE` - Размер пула подключений (по умолчанию: `10`)
+- `DATABASE_ECHO_SQL` - Логировать SQL запросы: `true` или `false` (по умолчанию: `false`)
+
+**API:**
+- `API_PREFIX` - Префикс API endpoints (по умолчанию: `/api`)
+- `API_TITLE` - Название API в документации (по умолчанию: `Request System API`)
+- `API_VERSION` - Версия API (по умолчанию: `1.1.0`)
+- `API_CORS_ORIGINS` - CORS разрешённые origins: `*` или `https://example.com,https://app.example.com` (по умолчанию: `*`)
+- `API_DOCS_URL` - Путь к Swagger UI (по умолчанию: `/docs`)
+- `API_REDOC_URL` - Путь к ReDoc (по умолчанию: `/redoc`)
+- `API_OPENAPI_URL` - Путь к OpenAPI схеме (по умолчанию: `/openapi.json`)
+
+**Логирование:**
+- `LOG_LEVEL` - Уровень логирования: `DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL` (по умолчанию: `INFO`)
+
+#### Примеры конфигурации
+
+**Разработка (локальная машина):**
+```bash
+APP_ENV=development
+APP_DEBUG=true
+APP_PORT=8000
+APP_HOST=127.0.0.1
+DATABASE_URL=sqlite:///./requests-dev.db
+DATABASE_ECHO_SQL=true
+LOG_LEVEL=DEBUG
+API_CORS_ORIGINS=*
+```
+
+**Staging окружение:**
+```bash
+APP_ENV=staging
+APP_DEBUG=false
+APP_PORT=8000
+APP_WORKERS=2
+DATABASE_URL=postgresql://user:password@staging-db:5432/requests_staging
+DATABASE_ECHO_SQL=false
+LOG_LEVEL=INFO
+API_CORS_ORIGINS=https://staging.example.com
+```
+
+**Production окружение:**
+```bash
+APP_ENV=production
+APP_DEBUG=false
+APP_PORT=8000
+APP_WORKERS=8
+DATABASE_URL=postgresql://user:password@prod-db:5432/requests_prod
+DATABASE_ECHO_SQL=false
+LOG_LEVEL=WARNING
+API_CORS_ORIGINS=https://app.example.com,https://api.example.com
+```
+
+#### Установка переменных окружения
+
+**Способ 1: Файл `.env` (рекомендуется для разработки)**
+```bash
+# Скопируйте и отредактируйте
+cp .env.example .env
+```
+
+**Способ 2: Переменные окружения системы**
+```bash
+# Linux/Mac
+export APP_PORT=9000
+export DATABASE_URL=postgresql://localhost/db
+
+# Windows PowerShell
+$env:APP_PORT=9000
+$env:DATABASE_URL="postgresql://localhost/db"
+```
+
+**Способ 3: Командная строка (для однократного запуска)**
+```bash
+# Linux/Mac
+APP_PORT=9000 APP_DEBUG=false python -m uvicorn src.request_system.presentation.main:app
+
+# Windows PowerShell
+$env:APP_PORT=9000; $env:APP_DEBUG="false"; python -m uvicorn src.request_system.presentation.main:app
+```
+
 ### Инициализация базы данных
 
 Приложение автоматически создаёт таблицы при первом запуске в файл `request-system.db`. Вы также можете инициализировать схему вручную:
