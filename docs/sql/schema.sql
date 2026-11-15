@@ -132,3 +132,15 @@ CREATE INDEX IF NOT EXISTS idx_request_history_latest
 CREATE UNIQUE INDEX IF NOT EXISTS idx_assignments_one_active_per_request
     ON Assignments (request_id)
     WHERE ended_at IS NULL;
+
+-- Additional indexes for common filtering operations
+CREATE INDEX IF NOT EXISTS idx_requests_applicant_user_id ON Requests(applicant_user_id);
+CREATE INDEX IF NOT EXISTS idx_requests_category_id ON Requests(category_id);
+CREATE INDEX IF NOT EXISTS idx_requests_priority ON Requests(priority);
+CREATE INDEX IF NOT EXISTS idx_requests_registered_at ON Requests(registered_at DESC);
+
+-- Support for common queries
+CREATE INDEX IF NOT EXISTS idx_request_history_request_id ON RequestHistory(request_id);
+CREATE INDEX IF NOT EXISTS idx_comments_request_id ON Comments(request_id);
+CREATE INDEX IF NOT EXISTS idx_assignments_assignee ON Assignments(assignee_user_id);
+CREATE INDEX IF NOT EXISTS idx_attachments_request_id ON Attachments(request_id);
