@@ -232,6 +232,39 @@ class SQLiteRequestRepository(
         _execute(self._connection, "RELEASE SAVEPOINT create_request_with_initial_status")
         return saved_request, initial_history
 
+    def list_filtered(
+        self,
+        *,
+        user_id: int | None = None,
+        category_id: int | None = None,
+        limit: int | None = None,
+        offset: int = 0,
+    ) -> list[Request]:
+        """List requests with SQL-side filtering for efficiency."""
+        conditions: list[str] = []
+        parameters: list[object] = []
+
+        if user_id is not None:
+            conditions.append("applicant_user_id = ?")
+            parameters.append(user_id)
+
+        if category_id is not None:
+            conditions.append("category_id = ?")
+            parameters.append(category_id)
+
+        where_clause = " AND ".join(conditions) if conditions else "1=1"
+        query = f"SELECT * FROM {self._table} WHERE {where_clause} ORDER BY registered_at DESC, request_id DESC"
+
+        if limit is not None:
+            query += " LIMIT ?"
+            parameters.append(limit)
+
+        query += " OFFSET ?"
+        parameters.append(offset)
+
+        rows = _execute(self._connection, query, tuple(parameters)).fetchall()
+        return [self._from_row(row) for row in rows]
+
 
 class SQLiteStatusRepository(SQLiteRepository[Status, int], StatusRepository):
     def __init__(self, connection: sqlite3.Connection) -> None:

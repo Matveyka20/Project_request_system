@@ -59,6 +59,15 @@ class RequestRepository(CrudRepository[Request, int], Protocol):
         explanation: str | None = None,
     ) -> tuple[Request, RequestHistory]: ...
 
+    def list_filtered(
+        self,
+        *,
+        user_id: int | None = None,
+        category_id: int | None = None,
+        limit: int | None = None,
+        offset: int = 0,
+    ) -> Sequence[Request]: ...
+
 
 class StatusRepository(CrudRepository[Status, int], Protocol):
     """Status lookup required by application workflows."""

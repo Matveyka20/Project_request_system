@@ -6,6 +6,12 @@ from datetime import datetime, timezone
 from uuid import uuid4
 
 from request_system.application.ports.persistence import UnitOfWork
+from request_system.common.exceptions import (
+    ConflictError,
+    NotFoundError,
+    OperationNotAllowedError,
+    ValidationError,
+)
 from request_system.domain.entities import Request, RequestHistory, Status
 
 INITIAL_STATUS_NAME = "Новая"
@@ -37,53 +43,74 @@ class ListRequestsResult:
     requests: Sequence[tuple[Request, Status, str, str]]  # (request, status, user_name, category_name)
 
 
-class RequestValidationError(ValueError):
+class RequestValidationError(ValidationError):
+    """Raised when request validation fails."""
+
     def __init__(self, errors: dict[str, str]) -> None:
         self.errors = errors.copy()
-        super().__init__("; ".join(errors.values()))
+        super().__init__(
+            message="; ".join(errors.values()),
+            details=errors,
+            error_code="REQUEST_VALIDATION_ERROR",
+        )
 
 
-class InitialStatusNotConfigured(RuntimeError):
+class InitialStatusNotConfigured(ConflictError):
+    """Raised when initial status is not configured."""
+
     def __init__(self) -> None:
-        super().__init__(f"Начальный статус «{INITIAL_STATUS_NAME}» не настроен.")
+        super().__init__(
+            message=f"Начальный статус «{INITIAL_STATUS_NAME}» не настроен.",
+            error_code="INITIAL_STATUS_NOT_CONFIGURED",
+        )
 
 
-class RequestNotFoundError(ValueError):
+class RequestNotFoundError(NotFoundError):
     """Raised when a request with the given ID does not exist."""
 
     def __init__(self, request_id: int) -> None:
-        self.request_id = request_id
-        super().__init__(f"Заявка с ID {request_id} не найдена.")
+        super().__init__(
+            resource_type="Заявка",
+            resource_id=request_id,
+            error_code="REQUEST_NOT_FOUND",
+        )
 
 
-class CannotUpdateRequestError(ValueError):
+class CannotUpdateRequestError(OperationNotAllowedError):
     """Raised when a request cannot be updated due to its current status."""
 
     def __init__(self, request_id: int, current_status: str) -> None:
         self.request_id = request_id
         self.current_status = current_status
         super().__init__(
-            f"Нельзя редактировать заявку в статусе «{current_status}»."
+            operation=f"update заявку #{request_id}",
+            current_state=f"статус '{current_status}'",
+            error_code="CANNOT_UPDATE_REQUEST",
         )
 
 
-class InvalidStatusTransitionError(ValueError):
+class InvalidStatusTransitionError(ConflictError):
     """Raised when a status transition is not allowed."""
 
     def __init__(self, current_status: str, requested_status: str) -> None:
         self.current_status = current_status
         self.requested_status = requested_status
         super().__init__(
-            f"Невозможно перейти из статуса «{current_status}» в «{requested_status}»."
+            message=f"Невозможно перейти из статуса «{current_status}» в «{requested_status}».",
+            error_code="INVALID_STATUS_TRANSITION",
         )
 
 
-class StatusNotFoundError(ValueError):
+class StatusNotFoundError(NotFoundError):
     """Raised when a status with the given name does not exist."""
 
     def __init__(self, status_name: str) -> None:
         self.status_name = status_name
-        super().__init__(f"Статус «{status_name}» не найден в системе.")
+        super().__init__(
+            resource_type="Статус",
+            resource_id=status_name,
+            error_code="STATUS_NOT_FOUND",
+        )
 
 
 def _utc_now() -> datetime:
@@ -233,19 +260,18 @@ class RequestService:
         category_id: int | None = None,
         status_name: str | None = None,
     ) -> ListRequestsResult:
-        """List requests with optional filters."""
+        """List requests with optional filters (using SQL-side filtering for efficiency)."""
         with self._unit_of_work_factory() as unit_of_work:
-            all_requests = unit_of_work.requests.list_all()
+            # Use optimized SQL-side filtering instead of loading everything into memory
+            filtered_requests = unit_of_work.requests.list_filtered(
+                user_id=user_id,
+                category_id=category_id,
+            )
             all_history = unit_of_work.request_history.list_all()
 
             results: list[tuple[Request, Status, str, str]] = []
 
-            for request in all_requests:
-                if user_id is not None and request.applicant_user_id != user_id:
-                    continue
-                if category_id is not None and request.category_id != category_id:
-                    continue
-
+            for request in filtered_requests:
                 latest_history = next(
                     (h for h in reversed(all_history) if h.request_id == request.request_id),
                     None,
