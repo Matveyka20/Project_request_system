@@ -282,10 +282,151 @@ $env:APP_PORT=9000; $env:APP_DEBUG="false"; python -m uvicorn src.request_system
 
 ### Инициализация базы данных
 
-Приложение автоматически создаёт таблицы при первом запуске в файл `request-system.db`. Вы также можете инициализировать схему вручную:
+Приложение использует SQLite для хранения данных. База данных инициализируется автоматически при первом запуске, однако вы можете выполнить инициализацию вручную и загрузить тестовые данные несколькими способами.
+
+#### Быстрая инициализация (рекомендуется)
+
+Используйте удобный bash-скрипт для инициализации базы данных:
+
+```bash
+# Инициализировать БД со схемой и тестовыми данными
+bash scripts/init-db.sh
+
+# Сбросить БД и переинициализировать (удалит всё)
+bash scripts/init-db.sh --reset
+
+# Использовать кастомный путь к БД
+bash scripts/init-db.sh --database /path/to/custom.db
+```
+
+Или используйте Makefile:
+
+```bash
+# Инициализировать БД
+make init-db
+
+# Сбросить БД
+make reset-db
+
+# Загрузить тестовые данные в существующую БД
+make seed-db
+```
+
+#### Ручная инициализация
+
+Если скрипты недоступны, вы можете инициализировать вручную:
 
 ```powershell
-python -c "from pathlib import Path; from request_system.infrastructure.database.sqlite import SQLiteDatabase; SQLiteDatabase('request-system.db', Path('docs/sql/schema.sql')).initialize()"
+# Вариант 1: Прямая инициализация через Python
+python -m request_system.scripts.load_seed_data --reset-db
+
+# Вариант 2: Только загрузить семена (не сбрасывать схему)
+python -m request_system.scripts.load_seed_data
+
+# Вариант 3: Использовать кастомный путь
+python -m request_system.scripts.load_seed_data --database ./my-database.db
+```
+
+#### Структура базы данных
+
+Подробная документация по структуре БД доступна в [docs/DATABASE_SCHEMA.md](docs/DATABASE_SCHEMA.md):
+
+- 10 таблиц с отношениями и индексами
+- Автоматические временные метки и аудит-трейлы
+- Полная история изменений статусов через `RequestHistory`
+- Встроенная поддержка комментариев и вложений
+
+#### Тестовые данные
+
+База данных автоматически заполняется реалистичными тестовыми данными:
+
+- **10 тестовых пользователей** с разными ролями (Admin, Manager, Executor, User)
+- **7 статусов** для управления жизненным циклом заявок
+- **8 категорий** для классификации заявок
+- **20 образцов заявок** с разными приоритетами и датами
+- **Комментарии и история** для демонстрации workflow
+
+Все тестовые данные синтетические и безопасны для разработки.
+
+#### Сброс и восстановление
+
+**Создать резервную копию:**
+```bash
+# SQLite резервная копия
+make backup
+# Создаст: backup_requests_YYYYMMDD_HHMMSS.db.gz
+```
+
+**Восстановить из резервной копии:**
+```bash
+make restore BACKUP_FILE=backup_requests_20261115_180000.db.gz
+```
+
+**Просмотр статистики БД:**
+```bash
+make db-stats
+```
+
+**Интерактивный доступ к БД:**
+```bash
+# Откроет sqlite3 командную строку
+make db-shell
+
+# Примеры SQL запросов
+sqlite> SELECT COUNT(*) FROM Requests;
+sqlite> SELECT * FROM Users LIMIT 5;
+sqlite> .tables
+```
+
+#### Интеграция с Docker
+
+Если вы используете Docker Compose, база данных автоматически инициализируется при запуске:
+
+```bash
+# При первом запуске Docker будет инициализировать БД с тестовыми данными
+docker-compose up -d
+
+# Проверить логи инициализации
+docker-compose logs app
+```
+
+#### Переключение между окружениями
+
+Вы можете использовать разные базы данных для разработки, тестирования и production:
+
+```bash
+# Разработка
+export DATABASE_URL=sqlite:///./requests-dev.db
+make init-db
+
+# Тестирование
+export DATABASE_URL=sqlite:///./requests-test.db
+make init-db
+
+# Production (обычно PostgreSQL, не SQLite)
+export DATABASE_URL=postgresql://user:pass@host/db
+# Инициализация через миграции (в будущем через Alembic)
+```
+
+#### Диагностика проблем
+
+Если инициализация БД не работает:
+
+```bash
+# Проверить существование БД файла
+ls -lh requests.db
+
+# Проверить целостность БД
+sqlite3 requests.db "PRAGMA integrity_check;"
+
+# Просмотреть структуру таблиц
+sqlite3 requests.db ".schema"
+
+# Проверить количество записей
+sqlite3 requests.db "SELECT COUNT(*) FROM Requests;"
+
+# Посмотреть логи приложения
+tail -f logs/app.log
 ```
 
 ### Использование CLI
