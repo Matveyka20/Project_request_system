@@ -1,0 +1,39 @@
+# Development-specific Docker Compose overrides
+# Usage: docker-compose -f docker-compose.yml -f docker-compose.dev.yml up -d
+# Or: docker-compose --profile dev up -d (for pgAdmin)
+
+version: '3.8'
+
+services:
+  # Override app service for development
+  app:
+    environment:
+      APP_ENV: development
+      APP_DEBUG: "true"
+      DATABASE_URL: sqlite:///./requests.db
+      LOG_LEVEL: DEBUG
+      REDIS_URL: ""  # Disable Redis in basic development
+    
+    # Full mount for live reloading
+    volumes:
+      - .:/app
+      - /app/.venv
+      - /app/__pycache__
+    
+    # No depends_on in dev (SQLite, no external services)
+    depends_on: []
+
+  # Disable db service in basic development (using SQLite)
+  db:
+    profiles:
+      - postgres  # Only enable with: --profile postgres
+
+  # Disable cache service in basic development
+  cache:
+    profiles:
+      - redis    # Only enable with: --profile redis
+
+  # pgAdmin is available in development with --profile dev
+  pgadmin:
+    profiles:
+      - dev      # Enable with: --profile dev

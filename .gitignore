@@ -27,6 +27,7 @@ __pycache__/
 .env.*
 !.env.example
 !.env.sample
+!.env.docker.example
 
 # Private keys and certificates
 *.pem

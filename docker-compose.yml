@@ -1,6 +1,19 @@
 version: '3.8'
 
+# ============================================================================
+# Main Docker Compose file for Request System API
+# Supports: Development (SQLite), Production (PostgreSQL + Redis)
+#
+# Usage:
+#   Development: docker-compose up -d
+#   Development with extras: docker-compose --profile dev up -d
+#   Production: docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+# ============================================================================
+
 services:
+  # ===========================================================================
+  # Main API Application
+  # ===========================================================================
   app:
     build:
       context: .
@@ -19,34 +32,36 @@ services:
       APP_HOST: 0.0.0.0
       APP_WORKERS: ${APP_WORKERS:-4}
       APP_NAME: ${APP_NAME:-Request System}
+      # Database configuration (supports both SQLite and PostgreSQL)
       DATABASE_URL: ${DATABASE_URL:-sqlite:///./requests.db}
       DATABASE_POOL_SIZE: ${DATABASE_POOL_SIZE:-10}
       DATABASE_ECHO_SQL: ${DATABASE_ECHO_SQL:-false}
+      # Optional Redis for caching
+      REDIS_URL: ${REDIS_URL:-}
+      # API configuration
       API_PREFIX: ${API_PREFIX:-/api}
       API_TITLE: ${API_TITLE:-Request System API}
       API_VERSION: ${API_VERSION:-1.1.0}
       API_CORS_ORIGINS: ${API_CORS_ORIGINS:-*}
+      # Logging
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    
+    # Dependencies on other services (development mode)
+    depends_on:
+      db:
+        condition: service_healthy
+      cache:
+        condition: service_healthy
     
     # Volume mounts (for development)
     volumes:
-      # Mount app directory for live code reloading in development
+      # Mount app directory for live code reloading
       - .:/app
-      # Mount database directory if using SQLite
-      - ./data:/app/data
+      # Exclude virtual environment if present
+      - /app/.venv
     
     # Restart policy
     restart: unless-stopped
-    
-    # Resource limits (optional, customize as needed)
-    # deploy:
-    #   resources:
-    #     limits:
-    #       cpus: '1'
-    #       memory: 512M
-    #     reservations:
-    #       cpus: '0.5'
-    #       memory: 256M
     
     # Health check configuration
     healthcheck:
@@ -54,7 +69,7 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 5s
+      start_period: 10s
     
     # Logging
     logging:
@@ -65,34 +80,164 @@ services:
     
     # Network
     networks:
-      - request-system
+      - request-system-network
 
-  # Optional: PostgreSQL service for production
-  # Uncomment and configure if using PostgreSQL instead of SQLite
-  # db:
-  #   image: postgres:15-alpine
-  #   container_name: request-system-db
-  #   environment:
-  #     POSTGRES_DB: ${DB_NAME:-requests}
-  #     POSTGRES_USER: ${DB_USER:-postgres}
-  #     POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
-  #   ports:
-  #     - "5432:5432"
-  #   volumes:
-  #     - postgres_data:/var/lib/postgresql/data
-  #   restart: unless-stopped
-  #   networks:
-  #     - request-system
-  #   healthcheck:
-  #     test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres}"]
-  #     interval: 10s
-  #     timeout: 5s
-  #     retries: 5
+  # ===========================================================================
+  # PostgreSQL Database (Production)
+  # For development, uses SQLite (no need for this service)
+  # ===========================================================================
+  db:
+    image: postgres:15-alpine
+    container_name: request-system-db
+    
+    # Environment variables
+    environment:
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+      POSTGRES_DB: ${DB_NAME:-requests_db}
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=C"
+      PGTZ: "UTC"
+    
+    # Port mapping
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    
+    # Data persistence
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      # Optional: Import initial schema on startup
+      # - ./docs/sql/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql
+    
+    # Restart policy
+    restart: unless-stopped
+    
+    # Health check
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    
+    # Logging
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: 3
+    
+    # Network
+    networks:
+      - request-system-network
 
-networks:
-  request-system:
-    driver: bridge
+  # ===========================================================================
+  # Redis Cache (Optional for production)
+  # Provides in-memory caching for performance optimization
+  # ===========================================================================
+  cache:
+    image: redis:7-alpine
+    container_name: request-system-cache
+    
+    # Port mapping
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    
+    # Configuration
+    command: >
+      redis-server
+      --appendonly yes
+      --maxmemory ${REDIS_MAX_MEMORY:-256mb}
+      --maxmemory-policy allkeys-lru
+    
+    # Data persistence
+    volumes:
+      - redis_data:/data
+    
+    # Restart policy
+    restart: unless-stopped
+    
+    # Health check
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    
+    # Logging
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: 3
+    
+    # Network
+    networks:
+      - request-system-network
 
+  # ===========================================================================
+  # pgAdmin - Database Management UI (Development Only)
+  # Access: http://localhost:5050
+  # Email: admin@example.com
+  # Password: admin
+  #
+  # Enabled with: docker-compose --profile dev up -d
+  # ===========================================================================
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: request-system-pgadmin
+    
+    # Environment variables
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:-admin@example.com}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:-admin}
+      PGADMIN_CONFIG_ENHANCED_COOKIE_PROTECTION: "False"
+      PGADMIN_CONFIG_CONSOLE_LOG_LEVEL: 10
+    
+    # Port mapping
+    ports:
+      - "${PGADMIN_PORT:-5050}:80"
+    
+    # Data persistence
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    
+    # Dependencies
+    depends_on:
+      - db
+    
+    # Restart policy
+    restart: unless-stopped
+    
+    # Logging
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: 3
+    
+    # Network
+    networks:
+      - request-system-network
+    
+    # Profile: only start with --profile dev
+    profiles:
+      - dev
+
+# ===========================================================================
+# Persistent Volumes
+# ===========================================================================
 volumes:
-  # postgres_data:
-  #   driver: local
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  pgadmin_data:
+    driver: local
+
+# ===========================================================================
+# Networks
+# ===========================================================================
+networks:
+  request-system-network:
+    driver: bridge

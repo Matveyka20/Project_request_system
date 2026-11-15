@@ -31,9 +31,10 @@ WORKDIR /app
 # Create non-root user for security
 RUN groupadd -r appuser && useradd -r -g appuser appuser
 
-# Install runtime dependencies only (curl for health checks)
+# Install runtime dependencies (curl for health checks, postgresql-client for DB tools)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
+    postgresql-client \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy wheels from builder

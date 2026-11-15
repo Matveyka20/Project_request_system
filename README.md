@@ -887,7 +887,238 @@ spec:
           periodSeconds: 30
 ```
 
-### Дополнительные ресурсы
+## 🐳 Docker Compose - Multi-Service Deployment
+
+Comprehensive Docker Compose setup with support for different deployment scenarios:
+- **Development**: SQLite database, live code reload
+- **Development + Tools**: PostgreSQL, Redis, pgAdmin
+- **Production**: PostgreSQL, Redis, optimized settings
+
+### Quick Start - Development (SQLite)
+
+```bash
+# Basic setup (no database tools needed)
+docker-compose up -d
+
+# Access API
+curl http://localhost:8000/health
+
+# View logs
+docker-compose logs -f app
+
+# Stop
+docker-compose down
+```
+
+### Development with Database Tools
+
+For PostgreSQL database management and Redis caching:
+
+```bash
+# Copy environment file (or use defaults)
+cp .env.docker.example .env.docker
+
+# Start with dev profile (includes pgAdmin)
+docker-compose --profile dev up -d
+
+# Access services
+# API: http://localhost:8000/docs
+# pgAdmin: http://localhost:5050 (admin@example.com / admin)
+# Redis: localhost:6379
+# PostgreSQL: localhost:5432
+
+# View logs
+docker-compose logs -f app
+
+# Database shell
+docker-compose exec db psql -U postgres -d requests_db
+
+# Stop
+docker-compose down
+```
+
+### Production Deployment
+
+```bash
+# Copy and configure environment
+cp .env.docker.example .env.docker
+# Edit .env.docker with production values:
+# - Set APP_ENV=production
+# - Set strong DB_PASSWORD
+# - Set LOG_LEVEL=WARNING
+# - Configure DATABASE_URL for PostgreSQL
+
+# Start with production overrides
+docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+
+# View logs
+docker-compose logs -f app
+
+# Database backup
+docker-compose exec db pg_dump -U postgres requests_db > backup.sql
+
+# Database restore
+docker-compose exec -T db psql -U postgres requests_db < backup.sql
+
+# Stop (keep data)
+docker-compose down
+
+# Stop and remove all data
+docker-compose down -v
+```
+
+### Services Overview
+
+| Service | Container | Image | Port | Purpose |
+|---------|-----------|-------|------|---------|
+| **app** | request-system-api | python:3.11-slim | 8000 | FastAPI application |
+| **db** | request-system-db | postgres:15-alpine | 5432 | PostgreSQL database |
+| **cache** | request-system-cache | redis:7-alpine | 6379 | Redis cache |
+| **pgadmin** | request-system-pgadmin | pgadmin4 | 5050 | Database UI (dev only) |
+
+### Configuration Files
+
+- **docker-compose.yml** - Main configuration (SQLite by default)
+- **docker-compose.dev.yml** - Development overrides (PostgreSQL + Redis profiles)
+- **docker-compose.prod.yml** - Production overrides (optimized settings, no dev tools)
+- **.env.docker.example** - Environment template (copy to .env.docker)
+
+### Common Commands
+
+```bash
+# Start services
+docker-compose up -d
+
+# Stop services
+docker-compose stop
+
+# View logs (all)
+docker-compose logs -f
+
+# View logs (specific service)
+docker-compose logs -f app
+docker-compose logs -f db
+docker-compose logs -f cache
+
+# Execute commands in container
+docker-compose exec app bash
+docker-compose exec db psql -U postgres
+
+# Database operations
+# Backup
+docker-compose exec db pg_dump -U postgres requests_db > backup.sql
+# Restore
+cat backup.sql | docker-compose exec -T db psql -U postgres -d requests_db
+
+# Redis operations
+docker-compose exec cache redis-cli
+
+# Check health
+docker-compose ps
+
+# Remove all (including volumes)
+docker-compose down -v
+```
+
+### Profiles (Selective Service Startup)
+
+```bash
+# Start only API (SQLite, no external services)
+docker-compose up -d
+
+# Add PostgreSQL and Redis
+docker-compose --profile postgres --profile redis up -d
+
+# Add pgAdmin for database management
+docker-compose --profile dev up -d
+
+# Production with all databases
+docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+```
+
+### Health Checks
+
+Each service includes health checks:
+
+```bash
+# Check service status
+docker-compose ps
+
+# Should show: "healthy" or "starting"
+
+# Check all services health
+python scripts/healthcheck.py
+```
+
+### Environment Variables
+
+Key environment variables in .env.docker:
+
+```env
+# Development
+APP_ENV=development
+APP_DEBUG=true
+LOG_LEVEL=DEBUG
+
+# Production
+APP_ENV=production
+APP_DEBUG=false
+LOG_LEVEL=WARNING
+
+# Database (SQLite or PostgreSQL)
+DATABASE_URL=sqlite:///./requests.db  # or postgresql://...
+
+# Redis (optional)
+REDIS_URL=redis://cache:6379/0
+
+# PostgreSQL credentials
+DB_USER=postgres
+DB_PASSWORD=postgres
+DB_NAME=requests_db
+```
+
+### Troubleshooting
+
+**API won't start:**
+```bash
+# Check logs
+docker-compose logs app
+
+# Verify health check
+curl http://localhost:8000/health
+```
+
+**Database connection failed:**
+```bash
+# Check database service
+docker-compose logs db
+
+# Wait for database to be ready
+docker-compose exec app python scripts/wait-for-db.sh
+```
+
+**Permission denied errors:**
+```bash
+# Run with proper permissions
+docker-compose exec -u appuser app bash
+
+# For root access (if needed)
+docker-compose exec app bash
+```
+
+**Volume/data persistence:**
+```bash
+# Check volumes
+docker volume ls
+
+# Inspect volume
+docker volume inspect <volume_name>
+
+# Clean up unused volumes
+docker volume prune
+```
+
+### 📋 Дополнительные ресурсы
 
 - **Swagger UI** (Интерактивное тестирование API): http://localhost:8000/docs
 - **OpenAPI Спецификация**: http://localhost:8000/openapi.json
