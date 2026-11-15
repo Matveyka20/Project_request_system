@@ -69,6 +69,595 @@
 
 ---
 
+## 🚀 Полное развертывание с нуля
+
+Полная инструкция для развертывания приложения на чистом Linux VPS.
+
+### Требования
+
+- Linux VPS (Ubuntu 20.04+, Debian 11+, CentOS 8+ или аналог)
+- Root или sudo доступ
+- SSH подключение к серверу
+- Доменное имя (опционально, для SSL/HTTPS)
+- ~10 минут для полной инсталляции
+
+### ⚡ Вариант 1: Полностью автоматизированный (Рекомендуется)
+
+**Время: 5-10 минут | Сложность: Минимальная**
+
+```bash
+# 1. Подключитесь к серверу по SSH
+ssh -i /path/to/key.pem ubuntu@your-vps-ip
+
+# 2. Запустите одну команду для развертывания
+curl -sSL https://raw.githubusercontent.com/Matveyka20/Project_request_system/develop/scripts/deploy.sh | sudo bash
+
+# 3. Подождите завершения (5-10 минут)
+# Скрипт автоматически:
+# ✓ Установит Docker и Docker Compose
+# ✓ Клонирует репозиторий
+# ✓ Настроит переменные окружения
+# ✓ Инициализирует базу данных
+# ✓ Загрузит тестовые данные
+# ✓ Запустит все сервисы
+# ✓ Проверит работоспособность
+
+# 4. Проверьте развертывание
+curl http://your-vps-ip:8000/health
+```
+
+**Результат:**
+```json
+{
+  "status": "healthy",
+  "uptime": "0.1 hours",
+  "version": "1.2.0",
+  "environment": "production",
+  "services": {
+    "database": "connected",
+    "cache": "connected"
+  }
+}
+```
+
+**Доступ к приложению:**
+- Swagger UI: http://your-vps-ip:8000/docs
+- ReDoc: http://your-vps-ip:8000/redoc
+- API: http://your-vps-ip:8000/api/requests
+
+---
+
+### 🛠️ Вариант 2: Пошаговое ручное развертывание
+
+**Время: 15-20 минут | Сложность: Средняя**
+
+#### Шаг 1: Подготовка сервера (2 мин)
+
+```bash
+ssh -i /path/to/key.pem ubuntu@your-vps-ip
+
+# Обновите пакеты
+sudo apt-get update
+sudo apt-get upgrade -y
+sudo apt-get install -y curl wget git
+```
+
+#### Шаг 2: Установка Docker (5 мин)
+
+```bash
+# Добавьте репозиторий Docker
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
+sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
+
+# Установите Docker
+sudo apt-get update
+sudo apt-get install -y docker-ce docker-ce-cli containerd.io
+
+# Добавьте пользователя в группу docker (опционально, избегайте sudo)
+sudo usermod -aG docker $USER
+newgrp docker
+
+# Проверьте установку
+docker --version
+```
+
+#### Шаг 3: Установка Docker Compose (2 мин)
+
+```bash
+# Загрузите последнюю версию Docker Compose
+sudo curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+
+# Сделайте исполняемым
+sudo chmod +x /usr/local/bin/docker-compose
+
+# Проверьте установку
+docker-compose --version
+```
+
+#### Шаг 4: Клонирование репозитория (1 мин)
+
+```bash
+# Создайте директорию приложения
+sudo mkdir -p /opt/request-system
+cd /opt/request-system
+
+# Клонируйте репозиторий
+sudo git clone -b develop https://github.com/Matveyka20/Project_request_system.git .
+
+# Измените владельца (если нужно)
+sudo chown -R $USER:$USER /opt/request-system
+```
+
+#### Шаг 5: Конфигурация окружения (2 мин)
+
+```bash
+# Скопируйте шаблон переменных
+cp .env.docker.example .env
+
+# Отредактируйте переменные окружения
+nano .env
+
+# Измените следующие значения на безопасные:
+# - DB_PASSWORD (используйте длинный пароль)
+# - REDIS_PASSWORD (используйте длинный пароль)
+# - APP_PORT (по умолчанию 8000, можно изменить)
+# - SECRET_KEY (сгенерируйте случайный ключ)
+```
+
+**Пример заполненного .env:**
+```bash
+# Application
+APP_ENV=production
+APP_DEBUG=false
+APP_PORT=8000
+APP_WORKERS=4
+LOG_LEVEL=INFO
+
+# Database
+DB_USER=postgres
+DB_PASSWORD=your_very_secure_db_password_here_12345
+DB_NAME=request_system
+DATABASE_URL=postgresql://postgres:your_very_secure_db_password_here_12345@db:5432/request_system
+
+# Redis
+REDIS_PASSWORD=your_secure_redis_password_here_12345
+REDIS_URL=redis://:your_secure_redis_password_here_12345@cache:6379/0
+
+# Security
+SECRET_KEY=your_random_secret_key_$(openssl rand -hex 32)
+ALLOWED_HOSTS=your-domain.com,your-vps-ip,localhost
+```
+
+#### Шаг 6: Запуск сервисов (2 мин)
+
+```bash
+# Перейдите в директорию приложения
+cd /opt/request-system
+
+# Запустите сервисы в фоновом режиме
+docker-compose up -d
+
+# Подождите 30-60 секунд для инициализации БД
+sleep 30
+
+# Проверьте статус
+docker-compose ps
+```
+
+**Ожидаемый результат:**
+```
+NAME                   COMMAND                  SERVICE   STATUS         PORTS
+request-system-api-1   "python -m uvicorn..."   api       Up 10s         0.0.0.0:8000->8000/tcp
+request-system-db-1    "postgres"               db        Up 15s         5432/tcp
+request-system-cache-1 "redis-server"           cache     Up 12s         6379/tcp
+request-system-pgadmin "nginx -g daemon off"    pgadmin   Up 8s          5050/tcp
+```
+
+#### Шаг 7: Проверка развертывания (2 мин)
+
+```bash
+# Проверьте health endpoint
+curl http://localhost:8000/health
+
+# Проверьте, что API работает
+curl http://localhost:8000/api/requests
+
+# Посмотрите логи (Ctrl+C для выхода)
+docker-compose logs -f api
+```
+
+#### Шаг 8: Доступ к приложению
+
+Откройте в браузере:
+- **Swagger UI** (интерактивная документация): http://your-vps-ip:8000/docs
+- **ReDoc** (документация): http://your-vps-ip:8000/redoc
+- **API** (прямой доступ): http://your-vps-ip:8000/api/requests
+- **Health** (проверка состояния): http://your-vps-ip:8000/health
+
+---
+
+### 🐳 Вариант 3: Только Docker (без Docker Compose)
+
+**Время: 10-15 минут | Сложность: Средняя**
+
+Для серверов с ограниченной поддержкой Docker Compose:
+
+```bash
+# Постройте образ
+docker build -t request-system:latest .
+
+# Вариант A: Запуск с SQLite (разработка)
+docker run -d \
+  -p 8000:8000 \
+  -e APP_ENV=production \
+  -e DATABASE_URL=sqlite:///./requests.db \
+  --name request-system \
+  request-system:latest
+
+# Вариант B: Запуск с внешней PostgreSQL (production)
+docker run -d \
+  -p 8000:8000 \
+  -e APP_ENV=production \
+  -e DATABASE_URL=postgresql://user:password@your-db-server:5432/requests_db \
+  --name request-system \
+  request-system:latest
+
+# Проверьте работу
+curl http://localhost:8000/health
+
+# Просмотрите логи
+docker logs -f request-system
+```
+
+---
+
+### 🆘 Решение типичных проблем
+
+#### ❌ Ошибка: "Docker command not found"
+```bash
+# Решение: Установите Docker или добавьте пользователя в группу docker
+sudo usermod -aG docker $USER
+newgrp docker
+# Или используйте sudo перед каждой командой
+```
+
+#### ❌ Ошибка: "Connection refused: postgres"
+```bash
+# Решение: Подождите, пока БД инициализируется (30-60 секунд)
+sleep 60
+docker-compose ps  # Проверьте, что db-1 запущена
+
+# Если БД не запускается, посмотрите логи:
+docker-compose logs db
+```
+
+#### ❌ Ошибка: "Port 8000 already in use"
+```bash
+# Решение 1: Используйте другой порт
+APP_PORT=9000 docker-compose up -d
+
+# Решение 2: Завершите процесс, использующий порт 8000
+sudo lsof -i :8000 | grep LISTEN | awk '{print $2}' | xargs kill -9
+```
+
+#### ❌ Ошибка: "Permission denied" при выполнении команд docker
+```bash
+# Решение: Используйте sudo или добавьте пользователя в группу docker
+sudo docker-compose ps
+# Или:
+sudo usermod -aG docker $USER && newgrp docker
+```
+
+#### ❌ Ошибка: "No space left on device"
+```bash
+# Решение: Очистите Docker кэш и неиспользуемые образы
+docker system prune -a --volumes
+```
+
+---
+
+### 📋 Контрольный список после развертывания
+
+Убедитесь, что все работает:
+
+- [ ] SSH подключение к серверу работает
+- [ ] Docker и Docker Compose установлены
+- [ ] Репозиторий успешно клонирован
+- [ ] Переменные окружения настроены (.env создан)
+- [ ] Все сервисы запущены (`docker-compose ps` показывает все "Up")
+- [ ] Health check отвечает: `curl http://your-ip:8000/health` → 200 OK
+- [ ] API endpoint работает: `curl http://your-ip:8000/api/requests` → JSON ответ
+- [ ] Swagger UI доступен: http://your-ip:8000/docs (откроется в браузере)
+- [ ] База данных инициализирована (логи не показывают ошибок)
+- [ ] Тестовые данные загружены (GET /api/requests показывает данные)
+- [ ] SSL сертификат установлен (опционально, если нужен HTTPS)
+- [ ] Nginx reverse proxy настроен (опционально, если нужен HTTPS)
+
+---
+
+### ⚙️ Дополнительная настройка после развертывания
+
+#### 1️⃣ Настройка SSL сертификата (Let's Encrypt)
+
+```bash
+# Установите Certbot
+sudo apt-get install -y certbot python3-certbot-nginx
+
+# Сгенерируйте сертификат
+sudo certbot certonly --standalone -d your-domain.com
+
+# Сертификаты будут в /etc/letsencrypt/live/your-domain.com/
+```
+
+#### 2️⃣ Настройка Nginx как reverse proxy
+
+```bash
+# Установите Nginx
+sudo apt-get install -y nginx
+
+# Скопируйте конфигурацию
+sudo cp nginx/request-system.conf /etc/nginx/sites-available/request-system
+
+# Активируйте сайт
+sudo ln -s /etc/nginx/sites-available/request-system /etc/nginx/sites-enabled/
+
+# Тестируйте и перезагрузите
+sudo nginx -t
+sudo systemctl reload nginx
+```
+
+#### 3️⃣ Настройка автозапуска (Systemd сервис)
+
+```bash
+# Скопируйте systemd сервис (если есть)
+sudo cp systemd/request-system.service /etc/systemd/system/ 2>/dev/null || true
+
+# Активируйте автозапуск
+sudo systemctl daemon-reload
+sudo systemctl enable docker
+sudo systemctl enable request-system 2>/dev/null || true
+```
+
+#### 4️⃣ Настройка мониторинга
+
+```bash
+# Запустите скрипт мониторинга в фоне
+bash scripts/monitor.sh &
+
+# Или используйте встроенный health check
+watch -n 5 'curl -s http://localhost:8000/health | jq .'
+```
+
+#### 5️⃣ Настройка резервного копирования БД
+
+```bash
+# Создайте директорию для резервных копий
+mkdir -p /backups
+chmod 700 /backups
+
+# Ручное резервное копирование
+docker-compose exec db pg_dump -U postgres request_system > /backups/backup_$(date +%Y%m%d_%H%M%S).sql
+
+# Автоматическое резервное копирование (cron)
+# Выполните: crontab -e
+# Добавьте строку:
+# 0 2 * * * cd /opt/request-system && docker-compose exec -T db pg_dump -U postgres request_system > /backups/backup_$(date +\%Y\%m\%d_\%H\%M\%S).sql
+```
+
+---
+
+### 🔄 Мониторинг развертывания
+
+```bash
+# Посмотрите логи приложения
+docker-compose logs -f api
+
+# Проверьте метрики ресурсов
+docker stats
+
+# Мониторьте health status
+watch -n 5 'curl -s http://localhost:8000/health | jq .'
+
+# Посмотрите запущенные контейнеры
+docker-compose ps
+
+# Перезагрузите сервисы
+docker-compose restart
+
+# Остановите сервисы
+docker-compose down
+
+# Обновите код и пересоберите
+cd /opt/request-system
+git pull origin develop
+docker-compose up -d --build
+```
+
+---
+
+### 🔧 Восстановление / Полный сброс
+
+Для полного сброса и повторного развертывания:
+
+```bash
+# Остановите и удалите все контейнеры
+docker-compose down -v
+
+# Удалите данные БД
+rm -rf /opt/request-system/postgres_data redis_data
+
+# Запустите заново
+docker-compose up -d
+```
+
+---
+
+### 💡 Рекомендации по выбору VPS
+
+Для этого приложения рекомендуем:
+
+| Провайдер | План | Цена | Характеристики | Ссылка |
+|-----------|------|------|-----------------|--------|
+| **Hetzner** | CX11 | €2.99/мес | 2GB RAM, 40GB SSD, Германия | https://hetzner.cloud |
+| **DigitalOcean** | Basic | $5/мес | 2GB RAM, 50GB SSD, 5 дата-центров | https://digitalocean.com |
+| **Linode** | Nanode | $5/мес | 2GB RAM, 50GB SSD, 11 регионов | https://linode.com |
+| **Vultr** | Cloud Compute | $2.50/мес | 2GB RAM, 60GB SSD, 32 локации | https://vultr.com |
+| **AWS** | t3.small | $0.0208/ч | 2GB RAM, гибкая конфигурация | https://aws.amazon.com |
+
+**Минимальные требования для production:**
+- CPU: 1-2 cores
+- RAM: 2GB (4GB рекомендуется)
+- Диск: 20GB SSD
+- Bandwidth: Неограниченный
+
+---
+
+### 🎯 Следующие шаги
+
+1. **Выберите VPS провайдера** из списка выше
+2. **Создайте новый VPS** с Linux (Ubuntu 20.04 рекомендуется)
+3. **Выполните развертывание** (Вариант 1 - автоматический, или Вариант 2 - ручной)
+4. **Проверьте приложение** используя контрольный список выше
+5. **(Опционально) Настройте SSL** и Nginx для HTTPS
+6. **(Опционально) Настройте резервное копирование** и мониторинг
+7. **Поделитесь адресом приложения!**
+
+---
+
+### ❓ Часто задаваемые вопросы
+
+**Q: Сколько времени займет развертывание?**  
+A: 5-10 минут с автоматическим скриптом, 15-20 минут ручным способом.
+
+**Q: Нужно ли доменное имя?**  
+A: Нет, можно использовать IP адрес. Доменное имя требуется только для SSL сертификата.
+
+**Q: Можно ли использовать другую БД?**  
+A: Да, настройте `DATABASE_URL` в .env для использования существующей БД.
+
+**Q: Как обновить приложение?**  
+A: `git pull && docker-compose up -d --build`
+
+**Q: Как сделать резервную копию данных?**  
+A: `docker-compose exec db pg_dump -U postgres request_system > backup.sql`
+
+**Q: Можно ли запустить локально на Windows/Mac?**  
+A: Да, установите Docker Desktop и используйте те же команды docker-compose.
+
+**Q: Что делать если забыл пароль БД?**  
+A: Отредактируйте .env, затем выполните `docker-compose down -v && docker-compose up -d`.
+
+**Q: Можно ли запустить без Docker?**  
+A: Да, но не рекомендуется для production. Используйте Вариант 2 (ручной) и пропустите Docker Compose, запустив приложение напрямую через uvicorn.
+
+---
+
+### 📚 Дополнительные ресурсы
+
+- **Репозиторий**: https://github.com/Matveyka20/Project_request_system
+- **Issues**: https://github.com/Matveyka20/Project_request_system/issues
+- **Документация**: Смотрите папку `docs/` в репозитории
+- **Docker документация**: https://docs.docker.com
+- **Docker Compose**: https://docs.docker.com/compose
+- **Ubuntu Server Guide**: https://ubuntu.com/server/docs
+
+---
+
+### ⚡ Быстрая справка по командам
+
+| Задача | Команда |
+|--------|---------|
+| **Развернуть (автоматический)** | `curl -sSL ... \| sudo bash` |
+| **Проверить статус** | `docker-compose ps` |
+| **Просмотреть логи** | `docker-compose logs -f app` |
+| **Health check** | `curl http://ip:8000/health` |
+| **Остановить сервисы** | `docker-compose down` |
+| **Перезагрузить сервисы** | `docker-compose restart` |
+| **Доступ Swagger UI** | http://ip:8000/docs |
+| **Сброс БД** | `docker-compose down -v` |
+| **Обновить приложение** | `git pull && docker-compose up -d --build` |
+| **Резервная копия БД** | `docker-compose exec db pg_dump ... > backup.sql` |
+| **Восстановить из бэкапа** | `docker-compose exec -T db psql ... < backup.sql` |
+
+---
+
+### 🏥 Мониторинг здоровья приложения
+
+Приложение предоставляет эндпоинты для проверки здоровья:
+
+```bash
+# Подробная проверка здоровья (возвращает 200 или 503)
+curl http://your-ip:8000/health | jq .
+
+# Простая проверка готовности (возвращает 200)
+curl http://your-ip:8000/ready
+
+# Результат (JSON):
+{
+  "status": "healthy",
+  "uptime": "2.5 hours",
+  "version": "1.2.0",
+  "environment": "production",
+  "services": {
+    "database": "connected",
+    "cache": "connected"
+  }
+}
+```
+
+**Используйте для:**
+- Docker health checks
+- Kubernetes probes
+- Monitoring систем
+- Load balancer health checks
+
+**Автоматический мониторинг:**
+```bash
+# Мониторьте каждые 5 секунд
+watch -n 5 'curl -s http://your-ip:8000/health | jq .'
+
+# Или используйте скрипт мониторинга
+bash scripts/monitor.sh
+```
+
+---
+
+### 🏗️ Архитектура развертывания
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                       Internet / Users                       │
+└──────────────────────────┬──────────────────────────────────┘
+                           │
+                ┌──────────▼──────────┐
+                │  Nginx Reverse Proxy │ (опционально)
+                │  HTTPS / гибридные   │
+                └──────────┬───────────┘
+                           │
+                ┌──────────▼──────────────────────────────────┐
+                │         FastAPI Application :8000            │
+                │  • REST API endpoints                       │
+                │  • Swagger UI (/docs)                       │
+                │  • Health checks (/health)                  │
+                └──────────┬───────────────────────────────────┘
+                           │
+        ┌──────────────────┼──────────────────┐
+        │                  │                  │
+    ┌───▼────┐         ┌───▼────┐        ┌───▼────┐
+    │  PostgreSQL      │  Redis  │        │pgAdmin │
+    │  Port 5432       │ Cache   │        │ UI     │
+    │  Database        │6379     │        │:5050   │
+    └────────┘         └────────┘        └────────┘
+        │
+    ┌───▼────────────────┐
+    │ Persistent Volumes │
+    │ • postgres_data    │
+    │ • redis_data       │
+    └────────────────────┘
+```
+
+---
+
 ## Архитектура
 
 Приложение разделено на интерфейс, прикладной сценарий, предметные сущности и инфраструктурный адаптер. Модули развиваются по реальным сценариям, а не обязаны иметь отдельный контроллер, сервис и репозиторий каждый.
