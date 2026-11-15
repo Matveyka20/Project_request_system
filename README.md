@@ -1698,3 +1698,84 @@ For comprehensive verification guide, see [docs/VERIFICATION.md](docs/VERIFICATI
 - Performance benchmarks
 - API endpoints reference
 
+
+## ?? Live Deployment Tracking
+
+Track all deployments of your application with comprehensive deployment information management.
+
+### Quick Status Check
+
+View current deployment information:
+`ash
+make deployment-status
+`
+
+Shows:
+- Application address and date
+- Environment (production/staging)
+- Access endpoints (API, Docs, Health)
+- Quick access links
+
+### Register a Deployment
+
+After deploying to a VPS or server:
+`ash
+# Interactive registration
+make register-deployment
+
+# Or direct command
+bash scripts/register-deployment.sh 192.168.1.100 2026-11-15 production DigitalOcean "Ubuntu 20.04"
+`
+
+**Registration captures:**
+- Application address (IP or domain)
+- Deploy date and time
+- Environment type
+- VPS provider
+- Operating system version
+
+### Check Deployment Details
+
+View comprehensive deployment information:
+`ash
+make deployment-info
+`
+
+Shows:
+- Server information (IP, domain, port)
+- Application version and phase
+- Environment details (OS, Docker, Python)
+- Services status
+- Database status
+- SSL/HTTPS configuration
+- Health check status
+- Recent deployment history
+
+### Update Deployment Status
+
+Check health and update status:
+`ash
+# Interactive update
+make update-deployment
+
+# Or direct command
+bash scripts/update-deployment-status.sh 192.168.1.100:8000
+`
+
+### Deployment History
+
+All deployments are recorded in:
+- **DEPLOYMENT_HISTORY.md** - Human-readable history with dates and access points
+- **deployment-config.json** - Machine-readable configuration with full details
+
+Both files are version-controlled for audit trail.
+
+### Files
+
+- **DEPLOYMENT_HISTORY.md** - Complete deployment timeline
+- **deployment-config.json** - Structured deployment configuration
+- **scripts/register-deployment.sh** - Register a deployment
+- **scripts/check-deployment-info.sh** - View deployment details
+- **scripts/update-deployment-status.sh** - Check health and update
+- **scripts/deployment-status.sh** - Quick status summary
+

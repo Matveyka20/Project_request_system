@@ -306,3 +306,32 @@ verify-report:
 	read -p "Enter API Port (default 8000): " port; \
 	port={port:-8000}; \
 	bash scripts/generate-verification-report.sh ip port
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# Deployment Tracking Commands
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+# Show deployment status
+deployment-status:
+	@bash scripts/deployment-status.sh
+
+# Check current deployment info
+deployment-info:
+	@bash scripts/check-deployment-info.sh
+
+# Register a deployment
+register-deployment:
+	@read -p "Enter application address (IP or domain): " address; \
+	read -p "Enter deploy date (default now): " date; \
+	date=$${date:-$$(date -u +'%Y-%m-%dT%H:%M:%SZ')}; \
+	read -p "Enter environment (default production): " env; \
+	env=$${env:-production}; \
+	read -p "Enter VPS provider (e.g., DigitalOcean): " provider; \
+	read -p "Enter OS version (e.g., Ubuntu 20.04): " os; \
+	bash scripts/register-deployment.sh "$$address" "$$date" "$$env" "$$provider" "$$os"
+
+# Update deployment status (health check)
+update-deployment:
+	@read -p "Enter application address (IP:port): " address; \
+	address=$${address:-localhost:8000}; \
+	bash scripts/update-deployment-status.sh "$$address"

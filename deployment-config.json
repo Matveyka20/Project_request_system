@@ -1,0 +1,71 @@
+{
+  "deployment": {
+    "timestamp": "2026-11-15T19:37:16Z",
+    "application": {
+      "name": "Request System API",
+      "version": "1.2.0",
+      "phase": "Phase 5 - REST API with Search & Filtering"
+    },
+    "server": {
+      "address": "TBD",
+      "ip": "TBD",
+      "domain": "TBD",
+      "port": 8000,
+      "ssh_port": 22,
+      "provider": "TBD",
+      "region": "TBD"
+    },
+    "environment": {
+      "type": "production",
+      "os": "Linux",
+      "os_version": "TBD",
+      "python_version": "3.11",
+      "docker_version": "TBD",
+      "docker_compose_version": "TBD"
+    },
+    "services": {
+      "api": {
+        "status": "running",
+        "port": 8000,
+        "container": "request-system-app-1"
+      },
+      "database": {
+        "status": "running",
+        "type": "postgresql",
+        "version": "15",
+        "port": 5432
+      },
+      "cache": {
+        "status": "running",
+        "type": "redis",
+        "version": "7",
+        "port": 6379
+      },
+      "pgadmin": {
+        "status": "running",
+        "port": 5050,
+        "profile": "dev"
+      }
+    },
+    "database": {
+      "initialized": false,
+      "migrations_applied": false,
+      "seed_data_loaded": false,
+      "total_requests": 0,
+      "total_users": 0
+    },
+    "ssl": {
+      "enabled": false,
+      "certificate_type": "none",
+      "domain": "TBD"
+    },
+    "health_check": {
+      "url": "TBD/health",
+      "status": "TBD",
+      "last_check": "TBD"
+    },
+    "deployment_method": "TBD",
+    "deployed_by": "TBD",
+    "notes": "TBD"
+  }
+}
