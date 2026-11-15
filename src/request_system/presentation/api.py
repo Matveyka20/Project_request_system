@@ -8,7 +8,9 @@ from fastapi.responses import JSONResponse
 from request_system.config import settings
 from request_system.application.ports.persistence import UnitOfWork
 from request_system.application.services.request_service import RequestService
+from request_system.application.services.health_service import health_service
 from request_system.presentation.models import (
+    HealthCheckResponse,
     ListRequestsQueryParams,
     ListRequestsResponse,
     RequestItemResponse,
@@ -28,23 +30,70 @@ def create_app(unit_of_work_factory: Callable[[], UnitOfWork]) -> FastAPI:
 
     service = RequestService(unit_of_work_factory)
 
-    # Health check endpoint for monitoring and Docker healthchecks
+    # =========================================================================
+    # Health Check Endpoints
+    # =========================================================================
+
     @app.get(
         "/health",
+        response_model=HealthCheckResponse,
         tags=["Health"],
-        summary="Health check endpoint",
-        description="Returns the health status of the API service. Used by load balancers and container orchestration.",
-        status_code=200,
+        summary="Comprehensive health check",
+        description="Returns detailed health status of the API service including database, cache, and uptime information. Used by Docker, Kubernetes, and load balancers.",
+        responses={
+            200: {"description": "Application is healthy or degraded (services responding)"},
+            503: {"description": "Application is unhealthy (critical services down)"}
+        }
     )
-    async def health_check():
-        """Health check endpoint for monitoring."""
+    async def health_check() -> HealthCheckResponse:
+        """
+        Comprehensive health check endpoint.
+
+        Returns detailed information about application status including:
+        - Overall health status (healthy, degraded, unhealthy)
+        - API version
+        - Application uptime
+        - Database status
+        - Cache status (if configured)
+        - Environment (development, production, staging)
+        - Python version
+
+        Response codes:
+            200: Healthy or degraded (services responding)
+            503: Unhealthy (critical services down)
+
+        Used by:
+            - Docker HEALTHCHECK
+            - Kubernetes liveness/readiness probes
+            - Load balancer health checks
+            - Monitoring systems
+        """
+        health = await health_service.check_health(settings)
+        status_code = 200 if health.status != "unhealthy" else 503
+        return JSONResponse(content=health.model_dump(mode="json"), status_code=status_code)
+
+    @app.get(
+        "/ready",
+        tags=["Health"],
+        summary="Readiness check",
+        description="Simple readiness check endpoint. Returns 200 if application is ready to accept requests.",
+        status_code=200
+    )
+    async def readiness_check():
+        """
+        Simple readiness check endpoint.
+
+        Returns:
+            {"ready": true} if application is ready
+
+        Used by:
+            - Kubernetes readiness probes
+            - Docker container orchestration
+            - Simple health verification
+        """
         return JSONResponse(
             status_code=200,
-            content={
-                "status": "ok",
-                "version": settings.api_version,
-                "environment": settings.app_env,
-            }
+            content={"ready": True}
         )
 
     @app.get(

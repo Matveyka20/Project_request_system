@@ -1,9 +1,65 @@
 """Pydantic models for REST API request/response validation."""
 
 from datetime import datetime
-from typing import Literal
+from typing import Literal, Optional
 
 from pydantic import BaseModel, Field
+
+
+class HealthCheckResponse(BaseModel):
+    """Health check response model - reports application status and service availability."""
+
+    status: str = Field(
+        ...,
+        description="Overall health status: healthy (all systems ok), degraded (some services not working), unhealthy (critical services down)"
+    )
+    version: str = Field(
+        ...,
+        description="API version"
+    )
+    timestamp: datetime = Field(
+        ...,
+        description="Health check timestamp (UTC)"
+    )
+    uptime_seconds: float = Field(
+        ...,
+        ge=0,
+        description="Seconds since application started"
+    )
+
+    # Service status
+    database: str = Field(
+        "ok",
+        description="Database status: ok, error, unknown"
+    )
+    cache: Optional[str] = Field(
+        None,
+        description="Cache (Redis) status: ok, error, unknown, or None if not configured"
+    )
+
+    # Application info
+    environment: str = Field(
+        ...,
+        description="Environment: development, staging, production"
+    )
+    python_version: str = Field(
+        ...,
+        description="Python version"
+    )
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "status": "healthy",
+                "version": "1.1.0",
+                "timestamp": "2026-11-15T19:02:07Z",
+                "uptime_seconds": 3600.5,
+                "database": "ok",
+                "cache": "ok",
+                "environment": "development",
+                "python_version": "3.11.0"
+            }
+        }
 
 
 class ListRequestsQueryParams(BaseModel):

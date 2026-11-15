@@ -964,6 +964,196 @@ lsof -i :8000
 netstat -ano | findstr :8000
 ```
 
+## 🏥 Health Check
+
+Приложение предоставляет endpoint `/health` для мониторинга состояния и используется Docker, Kubernetes и балансировщиками нагрузки для проверки здоровья приложения.
+
+### Endpoints
+
+#### GET /health - Полная проверка здоровья
+
+Возвращает подробную информацию о состоянии приложения включая:
+- Общее состояние (healthy, degraded, unhealthy)
+- Версия API
+- Время работы приложения (uptime)
+- Статус базы данных
+- Статус кэша (если настроен)
+- Окружение (development, staging, production)
+- Версия Python
+
+**Запрос:**
+```bash
+curl http://localhost:8000/health
+```
+
+**Ответ (200 OK или 503 Service Unavailable):**
+```json
+{
+  "status": "healthy",
+  "version": "1.1.0",
+  "timestamp": "2026-11-15T19:02:07Z",
+  "uptime_seconds": 3600.5,
+  "database": "ok",
+  "cache": "ok",
+  "environment": "development",
+  "python_version": "3.11.0"
+}
+```
+
+**HTTP коды:**
+- `200 OK` - Приложение работает нормально (healthy или degraded)
+- `503 Service Unavailable` - Критические сервисы недоступны (unhealthy)
+
+#### GET /ready - Простая проверка готовности
+
+Простой endpoint для быстрой проверки готовности приложения принимать запросы. Используется при быстрых проверках и в Kubernetes readiness probes.
+
+**Запрос:**
+```bash
+curl http://localhost:8000/ready
+```
+
+**Ответ (200 OK):**
+```json
+{
+  "ready": true
+}
+```
+
+### Docker Health Check
+
+Docker автоматически мониторит здоровье приложения используя endpoint `/health`.
+
+**Просмотр статуса здоровья:**
+```bash
+# Показать статус контейнера (должен быть "healthy")
+docker ps --format "table {{.Names}}\t{{.Status}}"
+# Результат: request-system-api  Up 5 minutes (healthy)
+
+# Получить детали здоровья контейнера
+docker inspect --format='{{.State.Health.Status}}' request-system-api
+# Результат: healthy
+
+# Просмотреть логи health check
+docker inspect request-system-api | grep -A 10 "Health"
+```
+
+### Docker Compose Health Check
+
+Health check уже настроен в `docker-compose.yml`:
+
+```yaml
+services:
+  app:
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s        # Проверка каждые 30 секунд
+      timeout: 10s         # Таймаут ответа 10 секунд
+      retries: 3           # Попыток перед unhealthy
+      start_period: 5s     # Благодатный период перед первой проверкой
+```
+
+**Конфигурация в .env:**
+```env
+# Health Check Configuration
+HEALTH_CHECK_INTERVAL=30      # Интервал проверки (секунды)
+HEALTH_CHECK_TIMEOUT=10       # Таймаут (секунды)
+HEALTH_CHECK_START_PERIOD=5   # Благодатный период (секунды)
+HEALTH_CHECK_RETRIES=3        # Максимум попыток
+```
+
+### Kubernetes Probes
+
+Для развертывания в Kubernetes используйте health endpoints в probes конфигурации:
+
+**Liveness Probe** (перезагрузить контейнер если unhealthy):
+```yaml
+livenessProbe:
+  httpGet:
+    path: /ready
+    port: 8000
+  initialDelaySeconds: 10      # Ждать 10 сек перед первой проверкой
+  periodSeconds: 30            # Проверять каждые 30 сек
+  timeoutSeconds: 5            # Таймаут ответа
+  failureThreshold: 3          # Попыток перед перезагрузкой
+```
+
+**Readiness Probe** (удалить из балансировщика если не ready):
+```yaml
+readinessProbe:
+  httpGet:
+    path: /health
+    port: 8000
+  initialDelaySeconds: 5       # Ждать 5 сек перед первой проверкой
+  periodSeconds: 10            # Проверять каждые 10 сек
+  timeoutSeconds: 3            # Таймаут ответа
+  failureThreshold: 2          # Попыток перед удалением
+```
+
+### Мониторинг и интеграция
+
+Health endpoints интегрируются с популярными инструментами мониторинга:
+
+- **Prometheus**: Scrape `/health` для метрик
+- **DataDog**: Использует `/health` для проверки доступности
+- **NewRelic**: Интегрирует health checks для alerting
+- **ELK Stack**: Агент собирает health статус
+- **AWS ECS**: Использует `/health` для задач health check
+- **Google Cloud Run**: Настраивается health check на `/ready`
+
+### Тестирование Health Check
+
+**Unit тесты:**
+```bash
+# Запустить тесты health check
+pytest tests/test_health_check.py -v
+
+# С покрытием
+pytest tests/test_health_check.py --cov=src/request_system/application/services/health_service
+```
+
+**Integration тесты:**
+```bash
+# Запустить контейнер и проверить health
+docker-compose up -d
+sleep 5
+curl http://localhost:8000/health | jq '.'
+
+# Проверить health status контейнера
+docker-compose ps
+```
+
+**Load test (проверить отклик под нагрузкой):**
+```bash
+# Использовать hey или ab
+hey -n 1000 -c 10 http://localhost:8000/health
+```
+
+### Troubleshooting
+
+**Контейнер marked as unhealthy:**
+1. Проверить логи: `docker-compose logs app`
+2. Проверить ответ endpoint: `curl -v http://localhost:8000/health`
+3. Проверить статус БД: `docker-compose logs db`
+4. Проверить статус кэша: `docker-compose logs cache`
+
+**Timeout health check:**
+1. Увеличить HEALTH_CHECK_TIMEOUT в .env
+2. Проверить ресурсы контейнера (CPU, память)
+3. Проверить network latency: `docker exec request-system-api ping cache`
+
+**Health check endpoint недоступен:**
+1. Проверить что curl установлен: `docker-compose exec app which curl`
+2. Проверить что app запущен: `docker-compose ps`
+3. Проверить port binding: `docker port request-system-api`
+4. Проверить firewall правила
+
+---
+
+## 🐳
+netstat -ano | findstr :8000
+```
+
 #### Общие проблемы
 
 **Проблема:** "Port 8000 is already in use"
