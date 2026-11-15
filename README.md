@@ -887,6 +887,121 @@ spec:
           periodSeconds: 30
 ```
 
+### Управление портами (Port Mapping)
+
+Docker контейнер имеет собственное сетевое пространство. Порты контейнера нужно пробросить на хост для доступа.
+
+**Формат port mapping:** `<external_port>:<internal_port>`
+- **External port** - порт на хост-машине (видна снаружи)
+- **Internal port** - порт внутри контейнера (где слушает приложение, 8000)
+
+#### Примеры
+
+```bash
+# По умолчанию: внешний 8000 -> внутренний 8000
+docker run -p 8000:8000 request-system:latest
+# Доступ: http://localhost:8000
+
+# Внешний 9000 -> внутренний 8000
+docker run -p 9000:8000 request-system:latest
+# Доступ: http://localhost:9000
+
+# Разные внешние порты
+docker run -p 8000:8000 request-system:latest
+docker run -p 8001:8000 request-system:latest  # Второй контейнер на другом порту
+# Доступ: http://localhost:8000 и http://localhost:8001
+
+# Явно указать IP хоста
+docker run -p 0.0.0.0:8000:8000 request-system:latest  # Все интерфейсы
+docker run -p 127.0.0.1:8000:8000 request-system:latest  # Только localhost
+```
+
+#### Изменение порта в Docker Compose
+
+**docker-compose.yml:**
+```yaml
+services:
+  app:
+    ports:
+      - "${APP_PORT:-8000}:8000"  # Используется APP_PORT из .env.docker или 8000 по умолчанию
+    environment:
+      APP_PORT: 8000  # Внутренний порт (внутри контейнера)
+```
+
+**Способы изменения:**
+1. **Переменная окружения .env.docker:**
+   ```env
+   APP_PORT=9000  # Внешний порт станет 9000
+   ```
+
+2. **Команда строка:**
+   ```bash
+   APP_PORT=9000 docker-compose up -d
+   ```
+
+3. **Прямое редактирование:**
+   ```yaml
+   ports:
+     - "9000:8000"  # Явное указание: внешний:внутренний
+   ```
+
+#### Проверка портов
+
+```bash
+# Какой порт слушает контейнер
+docker ps
+# Показывает: 0.0.0.0:8000->8000/tcp request-system-api
+
+# Проверить доступность
+curl http://localhost:8000/health
+curl http://localhost:9000/health  # если изменили порт на 9000
+
+# Какие процессы слушают портов на хосте (Linux/Mac)
+netstat -tlnp | grep 8000
+lsof -i :8000
+
+# На Windows
+netstat -ano | findstr :8000
+```
+
+#### Общие проблемы
+
+**Проблема:** "Port 8000 is already in use"
+```bash
+# Решение 1: Изменить порт
+APP_PORT=8001 docker-compose up -d
+
+# Решение 2: Остановить конфликтующий контейнер
+docker stop container_name
+docker rm container_name
+```
+
+**Проблема:** Контейнер работает, но API недоступна
+```bash
+# Проверить логи
+docker-compose logs app
+
+# Проверить health check
+curl http://localhost:8000/health
+
+# Проверить что контейнер запущен
+docker ps
+
+# Проверить сетевое подключение
+docker-compose exec app curl http://localhost:8000/health
+```
+
+**Проблема:** "Connection refused" при обращении к БД
+```bash
+# Проверить зависимости (depends_on)
+docker-compose ps
+
+# Должны быть: app, db, cache все в статусе "healthy"
+
+# Ждать готовности БД
+./scripts/wait-for-db.sh
+```
+
 ## 🐳 Docker Compose - Multi-Service Deployment
 
 Comprehensive Docker Compose setup with support for different deployment scenarios:
