@@ -1,0 +1,38 @@
+[Unit]
+Description=Request System API - Docker Compose Application
+Documentation=file:///opt/request-system/docs/DEPLOYMENT.md
+After=docker.service network-online.target
+Wants=network-online.target
+Requires=docker.service
+
+[Service]
+Type=oneshot
+User=root
+WorkingDirectory=/opt/request-system
+
+# Start services
+ExecStart=/usr/local/bin/docker-compose up -d
+
+# Stop services
+ExecStop=/usr/local/bin/docker-compose down
+
+# Restart policy
+RemainAfterExit=yes
+Restart=on-failure
+RestartSec=10
+
+# Resource limits
+MemoryMax=2G
+TasksMax=100
+
+# Environment
+Environment="DOCKER_CLIENT_TIMEOUT=120"
+Environment="COMPOSE_HTTP_TIMEOUT=120"
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=request-system
+
+[Install]
+WantedBy=multi-user.target
