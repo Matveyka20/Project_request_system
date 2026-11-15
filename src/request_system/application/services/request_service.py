@@ -334,6 +334,7 @@ class RequestService:
 
             return request, history_record
 
+<<<<<<< HEAD
     def list_requests_with_filters(
         self,
         *,
@@ -434,3 +435,5 @@ class RequestService:
                 has_previous=has_previous,
             )
 
+=======
+>>>>>>> origin/develop
