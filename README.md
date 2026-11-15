@@ -1580,3 +1580,121 @@ docker volume prune
 - [ER-диаграмма таблиц](docs/architecture/er-diagram.md)
 - [SQL-схема, тестовые данные и примеры запросов](docs/sql/README.md)
 - [Прототипы интерфейса в Figma и PNG-экспорты](docs/prototypes/README.md)
+
+## ?? Remote Verification & Testing
+
+Complete verification procedures for ensuring your API deployment is working correctly on local machines, VPS, or cloud platforms.
+
+### Quick Verification
+
+**Local verification:**
+`ash
+# Verify local deployment
+make verify-local
+
+# Or directly
+bash scripts/remote-verify.sh localhost 8000
+`
+
+**Remote verification:**
+`ash
+# Verify remote VPS deployment
+make verify-remote
+
+# Or directly
+bash scripts/remote-verify.sh 192.168.1.100 8000
+`
+
+### Full Deployment + Verification
+
+Deploy to VPS and run all verification tests:
+`ash
+make deploy-and-verify
+
+# Or directly
+bash scripts/full-deploy-and-verify.sh 192.168.1.100 ubuntu 22
+`
+
+**What this does:**
+1. ? SSH connectivity check
+2. ? System updates
+3. ? Docker installation
+4. ? Repository deployment
+5. ? Environment setup
+6. ? Database initialization
+7. ? Health checks
+8. ? Full API verification (15+ tests)
+
+### Integration Testing
+
+Run comprehensive test suite:
+`ash
+# Run all integration tests
+make test-remote
+
+# With coverage report
+make test-remote-coverage
+
+# Against remote server
+API_BASE_URL=http://192.168.1.100:8000 make test-remote-server
+`
+
+**Tests included:**
+- Connectivity tests (health, ready, docs)
+- CRUD operations (create, read, update, delete)
+- Filtering & search
+- Pagination & sorting
+- Data integrity
+- Error handling
+- Performance (response times)
+
+### Postman Collection
+
+Import postman/Request-System-API.json into Postman for manual testing:
+
+1. Open Postman
+2. Click "Import"
+3. Choose postman/Request-System-API.json
+4. Update ase_url variable for your environment
+5. Start testing!
+
+**Included requests:**
+- Health checks
+- List, create, read, update, delete requests
+- Filtering by status, priority, category
+- Search & pagination
+- Sorting
+
+### Manual Testing Examples
+
+`ash
+# Health check
+curl http://192.168.1.100:8000/health | jq .
+
+# List requests
+curl http://192.168.1.100:8000/api/requests | jq .
+
+# Filter by status
+curl "http://192.168.1.100:8000/api/requests?status=submitted" | jq .
+
+# Search
+curl "http://192.168.1.100:8000/api/requests?search=IT" | jq .
+
+# Pagination
+curl "http://192.168.1.100:8000/api/requests?limit=10&offset=0" | jq .
+
+# Create request
+curl -X POST http://192.168.1.100:8000/api/requests \
+  -H "Content-Type: application/json" \
+  -d '{"user_id": 1, "category_id": 1, "title": "Test", "description": "Test", "priority": 2}'
+`
+
+### Documentation
+
+For comprehensive verification guide, see [docs/VERIFICATION.md](docs/VERIFICATION.md):
+- All test procedures
+- Expected responses
+- Troubleshooting guide
+- Performance benchmarks
+- API endpoints reference
+

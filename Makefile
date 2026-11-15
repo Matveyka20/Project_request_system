@@ -259,3 +259,50 @@ db-shell:
 # Database stats
 db-stats:
 	@sqlite3 requests.db "SELECT 'Users' as table_name, COUNT(*) as count FROM Users UNION ALL SELECT 'Requests', COUNT(*) FROM Requests UNION ALL SELECT 'Comments', COUNT(*) FROM Comments UNION ALL SELECT 'Categories', COUNT(*) FROM Categories UNION ALL SELECT 'Statuses', COUNT(*) FROM Statuses;"
+
+# ?????????????????????????????????????????????????????????????????
+# Verification & Testing Commands
+# ?????????????????????????????????????????????????????????????????
+
+# Verify local deployment
+verify-local:
+	@echo "Verifying local API deployment..."
+	bash scripts/remote-verify.sh localhost 8000
+
+# Verify remote deployment
+verify-remote:
+	@read -p "Enter VPS IP: " ip; \
+	read -p "Enter API Port (default 8000): " port; \
+	port={port:-8000}; \
+	bash scripts/remote-verify.sh ip port
+
+# Full deployment and verification
+deploy-and-verify:
+	@read -p "Enter VPS IP: " ip; \
+	read -p "Enter VPS User (default ubuntu): " user; \
+	user={user:-ubuntu}; \
+	read -p "Enter SSH Port (default 22): " port; \
+	port={port:-22}; \
+	bash scripts/full-deploy-and-verify.sh ip user port
+
+# Run integration tests
+test-remote:
+	@echo "Running integration tests..."
+	pytest tests/test_remote_integration.py -v --tb=short
+
+# Run integration tests with coverage
+test-remote-coverage:
+	@echo "Running integration tests with coverage..."
+	pytest tests/test_remote_integration.py -v --cov=src --cov-report=html --cov-report=term
+
+# Run integration tests against remote API
+test-remote-server:
+	@read -p "Enter API base URL (e.g., http://192.168.1.100:8000): " url; \
+	API_BASE_URL=url pytest tests/test_remote_integration.py -v --tb=short
+
+# Generate verification report
+verify-report:
+	@read -p "Enter Server IP: " ip; \
+	read -p "Enter API Port (default 8000): " port; \
+	port={port:-8000}; \
+	bash scripts/generate-verification-report.sh ip port
