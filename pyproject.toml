@@ -8,6 +8,18 @@ version = "0.1.0"
 description = "Система обработки заявок"
 readme = "README.md"
 requires-python = ">=3.10"
+dependencies = [
+    "click>=8.0",
+    "fastapi>=0.100.0",
+    "pydantic>=2.0",
+    "pydantic-settings>=2.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "httpx>=0.24.0",
+    "pytest>=7.0",
+]
 
 [project.scripts]
 request-system = "request_system.__main__:main"

@@ -1,0 +1,508 @@
+openapi: 3.0.0
+info:
+  title: Request Management System API
+  description: |
+    Complete REST API for request management with comprehensive search, filtering, sorting, and pagination capabilities.
+    
+    This API provides production-grade functionality for managing support requests with advanced querying capabilities.
+  version: 1.0.0
+  contact:
+    name: API Support
+    email: support@example.com
+  license:
+    name: MIT
+
+servers:
+  - url: http://localhost:8000
+    description: Development server
+  - url: https://api.example.com
+    description: Production server
+
+paths:
+  /api/requests:
+    get:
+      operationId: listRequests
+      summary: Get list of requests with filtering, sorting, and pagination
+      description: |
+        Retrieve a paginated list of requests with advanced filtering, full-text search, 
+        sorting capabilities, and metadata about pagination state.
+        
+        All filters are combined with AND logic - multiple filters narrow results further.
+        Search parameters support case-insensitive substring matching.
+      tags:
+        - Requests
+      parameters:
+        # Filter parameters
+        - name: user_id
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+          description: Filter by applicant user ID
+          example: 1
+        
+        - name: category_id
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+          description: Filter by request category ID
+          example: 1
+        
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum:
+              - New
+              - In Progress
+              - Under Review
+              - Approved
+              - Rejected
+              - Completed
+          description: Filter by request status
+          example: "In Progress"
+        
+        - name: priority
+          in: query
+          schema:
+            type: string
+            enum:
+              - Low
+              - Medium
+              - High
+              - Critical
+          description: Filter by request priority level
+          example: High
+        
+        - name: account_name
+          in: query
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 255
+          description: Filter by account name (substring match, case-insensitive)
+          example: "John"
+        
+        # Search parameters
+        - name: search
+          in: query
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 500
+          description: Full-text search in description and account_name fields (case-insensitive)
+          example: "laptop"
+        
+        - name: search_description
+          in: query
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 500
+          description: Search only in the description field (case-insensitive)
+          example: "equipment"
+        
+        # Sorting parameters
+        - name: sort_by
+          in: query
+          schema:
+            type: string
+            enum:
+              - created_at
+              - id
+              - priority
+              - status
+              - account_name
+            default: created_at
+          description: Field to sort by
+          example: "created_at"
+        
+        - name: sort_order
+          in: query
+          schema:
+            type: string
+            enum:
+              - asc
+              - desc
+            default: desc
+          description: Sort order direction
+          example: desc
+        
+        # Pagination parameters
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 10
+          description: Maximum number of results to return per page
+          example: 10
+        
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+          description: Number of results to skip (for offset-based pagination)
+          example: 0
+        
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+          description: |
+            Page number (1-indexed). When provided, overrides offset calculation.
+            Offset is calculated as (page - 1) * limit.
+            Alternative to using offset directly.
+          example: 1
+      
+      responses:
+        '200':
+          description: Successful response with list of requests and pagination metadata
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListRequestsResponse'
+              examples:
+                basicList:
+                  summary: Basic list with default pagination
+                  value:
+                    requests:
+                      - request_id: 1
+                        request_number: "REQ-20261115-001"
+                        description: "Need new laptop for development"
+                        applicant_user_id: 1
+                        user_name: "John Doe"
+                        category_id: 1
+                        category_name: "IT Equipment"
+                        priority: "High"
+                        status: "In Progress"
+                        registered_at: "2026-11-15T18:00:00Z"
+                    total_count: 100
+                    filtered_count: 100
+                    returned_count: 10
+                    limit: 10
+                    offset: 0
+                    has_next: true
+                    has_previous: false
+                
+                filtered:
+                  summary: Filtered results with fewer items
+                  value:
+                    requests:
+                      - request_id: 1
+                        request_number: "REQ-20261115-001"
+                        description: "Need new laptop for development"
+                        applicant_user_id: 1
+                        user_name: "John Doe"
+                        category_id: 1
+                        category_name: "IT Equipment"
+                        priority: "High"
+                        status: "In Progress"
+                        registered_at: "2026-11-15T18:00:00Z"
+                      - request_id: 3
+                        request_number: "REQ-20261115-003"
+                        description: "Software license purchase"
+                        applicant_user_id: 1
+                        user_name: "John Doe"
+                        category_id: 1
+                        category_name: "IT Equipment"
+                        priority: "High"
+                        status: "New"
+                        registered_at: "2026-11-15T18:30:00Z"
+                    total_count: 100
+                    filtered_count: 2
+                    returned_count: 2
+                    limit: 10
+                    offset: 0
+                    has_next: false
+                    has_previous: false
+        
+        '400':
+          description: Invalid query parameters (validation error)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
+              example:
+                detail:
+                  - type: "less_than_equal"
+                    loc: ["query", "limit"]
+                    msg: "Input should be less than or equal to 100"
+                    input: 200
+                    ctx:
+                      le: 100
+        
+        '422':
+          description: Invalid enum values or malformed request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
+              example:
+                detail:
+                  - type: "enum"
+                    loc: ["query", "status"]
+                    msg: "Input should be 'New', 'In Progress', 'Under Review', 'Approved', 'Rejected', or 'Completed'"
+                    input: "InvalidStatus"
+                    ctx:
+                      expected: "'New', 'In Progress', 'Under Review', 'Approved', 'Rejected', 'Completed'"
+        
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                detail: "Internal server error"
+
+  /health:
+    get:
+      operationId: healthCheck
+      summary: Health check endpoint
+      description: Check if the API service is running and healthy
+      tags:
+        - Health
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "ok"
+
+components:
+  schemas:
+    RequestItem:
+      type: object
+      description: Individual request object in the response
+      required:
+        - request_id
+        - request_number
+        - description
+        - applicant_user_id
+        - user_name
+        - category_id
+        - category_name
+        - priority
+        - status
+        - registered_at
+      properties:
+        request_id:
+          type: integer
+          description: Unique identifier for the request
+          example: 1
+        
+        request_number:
+          type: string
+          description: Human-readable request number
+          example: "REQ-20261115-001"
+        
+        description:
+          type: string
+          description: Detailed description of the request
+          example: "Need new laptop for development"
+        
+        applicant_user_id:
+          type: integer
+          description: ID of the user who created the request
+          example: 1
+        
+        user_name:
+          type: string
+          description: Name of the user who created the request
+          example: "John Doe"
+        
+        category_id:
+          type: integer
+          description: ID of the request category
+          example: 1
+        
+        category_name:
+          type: string
+          description: Name of the request category
+          example: "IT Equipment"
+        
+        priority:
+          type: string
+          enum:
+            - Low
+            - Medium
+            - High
+            - Critical
+          description: Priority level of the request
+          example: "High"
+        
+        status:
+          type: string
+          enum:
+            - New
+            - In Progress
+            - Under Review
+            - Approved
+            - Rejected
+            - Completed
+          description: Current status of the request
+          example: "In Progress"
+        
+        registered_at:
+          type: string
+          format: date-time
+          description: ISO 8601 timestamp when the request was created
+          example: "2026-11-15T18:00:00Z"
+    
+    ListRequestsResponse:
+      type: object
+      description: Paginated list of requests with metadata
+      required:
+        - requests
+        - total_count
+        - filtered_count
+        - returned_count
+        - limit
+        - offset
+        - has_next
+        - has_previous
+      properties:
+        requests:
+          type: array
+          description: Array of request objects matching the query
+          items:
+            $ref: '#/components/schemas/RequestItem'
+        
+        total_count:
+          type: integer
+          description: Total number of requests in the database (ignoring all filters)
+          example: 100
+          minimum: 0
+        
+        filtered_count:
+          type: integer
+          description: |
+            Total number of requests matching the applied filters and search terms 
+            (before pagination)
+          example: 25
+          minimum: 0
+        
+        returned_count:
+          type: integer
+          description: |
+            Number of requests actually returned in this response 
+            (may be less than filtered_count due to pagination)
+          example: 10
+          minimum: 0
+        
+        limit:
+          type: integer
+          description: Page size used for this request
+          example: 10
+          minimum: 1
+          maximum: 100
+        
+        offset:
+          type: integer
+          description: Starting position in the filtered results (0-indexed)
+          example: 0
+          minimum: 0
+        
+        has_next:
+          type: boolean
+          description: True if there are more results beyond this page
+          example: true
+        
+        has_previous:
+          type: boolean
+          description: True if there are results before this page
+          example: false
+    
+    ValidationError:
+      type: object
+      description: Validation error response
+      properties:
+        detail:
+          type: array
+          description: Array of validation errors
+          items:
+            type: object
+            properties:
+              type:
+                type: string
+                description: Error type (e.g., "less_than_equal", "enum", "string_type")
+              loc:
+                type: array
+                description: Location of the error (e.g., ["query", "limit"])
+                items:
+                  oneOf:
+                    - type: string
+                    - type: integer
+              msg:
+                type: string
+                description: Human-readable error message
+              input:
+                description: The invalid input value
+              ctx:
+                type: object
+                description: Additional context about the error
+    
+    ErrorResponse:
+      type: object
+      description: Generic error response
+      properties:
+        detail:
+          type: string
+          description: Error message
+          example: "Internal server error"
+
+tags:
+  - name: Requests
+    description: Operations related to requests
+  - name: Health
+    description: Service health and status checks
+
+x-api-info:
+  maturity: production
+  stability: stable
+  documentation: https://github.com/yourusername/request-system/blob/main/docs/search-and-filtering.md
+  examples: https://github.com/yourusername/request-system/blob/main/docs/api-response-examples.md
+
+x-query-patterns:
+  basic_list:
+    description: "Get all requests with default pagination"
+    url: "/api/requests"
+  
+  filter_by_user:
+    description: "Get requests for a specific user"
+    url: "/api/requests?user_id=1"
+  
+  filter_by_status:
+    description: "Get requests with specific status"
+    url: "/api/requests?status=In%20Progress"
+  
+  full_text_search:
+    description: "Search across description and account_name"
+    url: "/api/requests?search=laptop"
+  
+  sort_by_priority:
+    description: "Sort requests by priority"
+    url: "/api/requests?sort_by=priority&sort_order=desc"
+  
+  pagination_offset:
+    description: "Paginate using limit and offset"
+    url: "/api/requests?limit=10&offset=20"
+  
+  pagination_page:
+    description: "Paginate using limit and page number"
+    url: "/api/requests?limit=10&page=3"
+  
+  combined_query:
+    description: "Complex query with filters, search, sort, and pagination"
+    url: "/api/requests?user_id=1&status=In%20Progress&search=equipment&sort_by=created_at&sort_order=desc&limit=10&offset=0"

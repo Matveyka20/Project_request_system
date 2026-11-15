@@ -1,0 +1,546 @@
+{
+  "info": {
+    "name": "Request System API - Search & Filtering",
+    "description": "Complete API collection for search, filtering, sorting, and pagination of requests",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "version": "1.0.0"
+  },
+  "item": [
+    {
+      "name": "1. Get All Requests (Basic)",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "http://localhost:8000/api/requests",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "8000",
+          "path": ["api", "requests"]
+        },
+        "description": "Get all requests without any filters"
+      },
+      "response": [
+        {
+          "name": "200 OK",
+          "originalRequest": {
+            "method": "GET",
+            "url": "http://localhost:8000/api/requests"
+          },
+          "status": "OK",
+          "code": 200,
+          "body": "{\"requests\":[{\"request_id\":1,\"request_number\":\"REQ-001\",\"description\":\"Требуется новое оборудование для отдела IT\",\"applicant_user_id\":1,\"user_name\":\"John Doe\",\"category_id\":1,\"category_name\":\"IT\",\"priority\":\"Высокий\",\"status\":\"Новая\",\"registered_at\":\"2026-11-15T12:00:00Z\"},{\"request_id\":2,\"request_number\":\"REQ-002\",\"description\":\"Оформление договора с поставщиком\",\"applicant_user_id\":2,\"user_name\":\"Jane Smith\",\"category_id\":3,\"category_name\":\"Администрация\",\"priority\":\"Средний\",\"status\":\"Новая\",\"registered_at\":\"2026-11-15T11:00:00Z\"}],\"total_count\":7,\"filtered_count\":7,\"returned_count\":2,\"limit\":10,\"offset\":0,\"has_next\":false,\"has_previous\":false}"
+        }
+      ]
+    },
+    {
+      "name": "2. Filter by user_id=1",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "http://localhost:8000/api/requests?user_id=1",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "8000",
+          "path": ["api", "requests"],
+          "query": [
+            {
+              "key": "user_id",
+              "value": "1"
+            }
+          ]
+        },
+        "description": "Filter requests by applicant user ID = 1"
+      },
+      "response": [
+        {
+          "name": "200 OK",
+          "originalRequest": {
+            "method": "GET",
+            "url": "http://localhost:8000/api/requests?user_id=1"
+          },
+          "status": "OK",
+          "code": 200,
+          "body": "{\"requests\":[{\"request_id\":1,\"request_number\":\"REQ-001\",\"description\":\"Требуется новое оборудование для отдела IT\",\"applicant_user_id\":1,\"user_name\":\"John Doe\",\"category_id\":1,\"category_name\":\"IT\",\"priority\":\"Высокий\",\"status\":\"Новая\",\"registered_at\":\"2026-11-15T12:00:00Z\"}],\"total_count\":7,\"filtered_count\":3,\"returned_count\":1,\"limit\":10,\"offset\":0,\"has_next\":false,\"has_previous\":false}"
+        }
+      ]
+    },
+    {
+      "name": "3. Filter by status='Новая'",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "http://localhost:8000/api/requests?status=Новая",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "8000",
+          "path": ["api", "requests"],
+          "query": [
+            {
+              "key": "status",
+              "value": "Новая"
+            }
+          ]
+        },
+        "description": "Filter requests by status 'Новая'"
+      },
+      "response": [
+        {
+          "name": "200 OK",
+          "originalRequest": {
+            "method": "GET",
+            "url": "http://localhost:8000/api/requests?status=Новая"
+          },
+          "status": "OK",
+          "code": 200,
+          "body": "{\"requests\":[{\"request_id\":1,\"request_number\":\"REQ-001\",\"description\":\"Требуется новое оборудование для отдела IT\",\"applicant_user_id\":1,\"user_name\":\"John Doe\",\"category_id\":1,\"category_name\":\"IT\",\"priority\":\"Высокий\",\"status\":\"Новая\",\"registered_at\":\"2026-11-15T12:00:00Z\"}],\"total_count\":7,\"filtered_count\":3,\"returned_count\":1,\"limit\":10,\"offset\":0,\"has_next\":false,\"has_previous\":false}"
+        }
+      ]
+    },
+    {
+      "name": "4. Filter by priority='Высокий'",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "http://localhost:8000/api/requests?priority=Высокий",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "8000",
+          "path": ["api", "requests"],
+          "query": [
+            {
+              "key": "priority",
+              "value": "Высокий"
+            }
+          ]
+        },
+        "description": "Filter requests by priority 'Высокий'"
+      },
+      "response": [
+        {
+          "name": "200 OK",
+          "originalRequest": {
+            "method": "GET",
+            "url": "http://localhost:8000/api/requests?priority=Высокий"
+          },
+          "status": "OK",
+          "code": 200,
+          "body": "{\"requests\":[{\"request_id\":1,\"request_number\":\"REQ-001\",\"description\":\"Требуется новое оборудование для отдела IT\",\"applicant_user_id\":1,\"user_name\":\"John Doe\",\"category_id\":1,\"category_name\":\"IT\",\"priority\":\"Высокий\",\"status\":\"Новая\",\"registered_at\":\"2026-11-15T12:00:00Z\"}],\"total_count\":7,\"filtered_count\":3,\"returned_count\":1,\"limit\":10,\"offset\":0,\"has_next\":false,\"has_previous\":false}"
+        }
+      ]
+    },
+    {
+      "name": "5. Filter by category_id=1",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "http://localhost:8000/api/requests?category_id=1",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "8000",
+          "path": ["api", "requests"],
+          "query": [
+            {
+              "key": "category_id",
+              "value": "1"
+            }
+          ]
+        },
+        "description": "Filter requests by category ID = 1"
+      },
+      "response": [
+        {
+          "name": "200 OK",
+          "originalRequest": {
+            "method": "GET",
+            "url": "http://localhost:8000/api/requests?category_id=1"
+          },
+          "status": "OK",
+          "code": 200,
+          "body": "{\"requests\":[{\"request_id\":1,\"request_number\":\"REQ-001\",\"description\":\"Требуется новое оборудование для отдела IT\",\"applicant_user_id\":1,\"user_name\":\"John Doe\",\"category_id\":1,\"category_name\":\"IT\",\"priority\":\"Высокий\",\"status\":\"Новая\",\"registered_at\":\"2026-11-15T12:00:00Z\"}],\"total_count\":7,\"filtered_count\":3,\"returned_count\":1,\"limit\":10,\"offset\":0,\"has_next\":false,\"has_previous\":false}"
+        }
+      ]
+    },
+    {
+      "name": "6. Full-text search 'договор'",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "http://localhost:8000/api/requests?search=договор",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "8000",
+          "path": ["api", "requests"],
+          "query": [
+            {
+              "key": "search",
+              "value": "договор"
+            }
+          ]
+        },
+        "description": "Full-text search across description and account_name for 'договор'"
+      },
+      "response": [
+        {
+          "name": "200 OK",
+          "originalRequest": {
+            "method": "GET",
+            "url": "http://localhost:8000/api/requests?search=договор"
+          },
+          "status": "OK",
+          "code": 200,
+          "body": "{\"requests\":[{\"request_id\":2,\"request_number\":\"REQ-002\",\"description\":\"Оформление договора с поставщиком\",\"applicant_user_id\":2,\"user_name\":\"Jane Smith\",\"category_id\":3,\"category_name\":\"Администрация\",\"priority\":\"Средний\",\"status\":\"Новая\",\"registered_at\":\"2026-11-15T11:00:00Z\"}],\"total_count\":7,\"filtered_count\":2,\"returned_count\":1,\"limit\":10,\"offset\":0,\"has_next\":false,\"has_previous\":false}"
+        }
+      ]
+    },
+    {
+      "name": "7. Search description 'оборудование'",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "http://localhost:8000/api/requests?search_description=оборудование",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "8000",
+          "path": ["api", "requests"],
+          "query": [
+            {
+              "key": "search_description",
+              "value": "оборудование"
+            }
+          ]
+        },
+        "description": "Search in description field only for 'оборудование'"
+      },
+      "response": [
+        {
+          "name": "200 OK",
+          "originalRequest": {
+            "method": "GET",
+            "url": "http://localhost:8000/api/requests?search_description=оборудование"
+          },
+          "status": "OK",
+          "code": 200,
+          "body": "{\"requests\":[{\"request_id\":1,\"request_number\":\"REQ-001\",\"description\":\"Требуется новое оборудование для отдела IT\",\"applicant_user_id\":1,\"user_name\":\"John Doe\",\"category_id\":1,\"category_name\":\"IT\",\"priority\":\"Высокий\",\"status\":\"Новая\",\"registered_at\":\"2026-11-15T12:00:00Z\"}],\"total_count\":7,\"filtered_count\":2,\"returned_count\":1,\"limit\":10,\"offset\":0,\"has_next\":false,\"has_previous\":false}"
+        }
+      ]
+    },
+    {
+      "name": "8. Sort by priority DESC",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "http://localhost:8000/api/requests?sort_by=priority&sort_order=desc&limit=100",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "8000",
+          "path": ["api", "requests"],
+          "query": [
+            {
+              "key": "sort_by",
+              "value": "priority"
+            },
+            {
+              "key": "sort_order",
+              "value": "desc"
+            },
+            {
+              "key": "limit",
+              "value": "100"
+            }
+          ]
+        },
+        "description": "Sort results by priority in descending order"
+      },
+      "response": [
+        {
+          "name": "200 OK",
+          "originalRequest": {
+            "method": "GET",
+            "url": "http://localhost:8000/api/requests?sort_by=priority&sort_order=desc&limit=100"
+          },
+          "status": "OK",
+          "code": 200,
+          "body": "{\"requests\":[{\"request_id\":1,\"request_number\":\"REQ-001\",\"description\":\"Требуется новое оборудование для отдела IT\",\"applicant_user_id\":1,\"user_name\":\"John Doe\",\"category_id\":1,\"category_name\":\"IT\",\"priority\":\"Высокий\",\"status\":\"Новая\",\"registered_at\":\"2026-11-15T12:00:00Z\"},{\"request_id\":2,\"request_number\":\"REQ-002\",\"description\":\"Оформление договора с поставщиком\",\"applicant_user_id\":2,\"user_name\":\"Jane Smith\",\"category_id\":3,\"category_name\":\"Администрация\",\"priority\":\"Средний\",\"status\":\"Новая\",\"registered_at\":\"2026-11-15T11:00:00Z\"}],\"total_count\":7,\"filtered_count\":7,\"returned_count\":7,\"limit\":100,\"offset\":0,\"has_next\":false,\"has_previous\":false}"
+        }
+      ]
+    },
+    {
+      "name": "9. Sort by id ASC",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "http://localhost:8000/api/requests?sort_by=id&sort_order=asc&limit=100",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "8000",
+          "path": ["api", "requests"],
+          "query": [
+            {
+              "key": "sort_by",
+              "value": "id"
+            },
+            {
+              "key": "sort_order",
+              "value": "asc"
+            },
+            {
+              "key": "limit",
+              "value": "100"
+            }
+          ]
+        },
+        "description": "Sort results by ID in ascending order"
+      },
+      "response": [
+        {
+          "name": "200 OK",
+          "originalRequest": {
+            "method": "GET",
+            "url": "http://localhost:8000/api/requests?sort_by=id&sort_order=asc&limit=100"
+          },
+          "status": "OK",
+          "code": 200,
+          "body": "{\"requests\":[{\"request_id\":1,\"request_number\":\"REQ-001\",\"description\":\"Требуется новое оборудование для отдела IT\",\"applicant_user_id\":1,\"user_name\":\"John Doe\",\"category_id\":1,\"category_name\":\"IT\",\"priority\":\"Высокий\",\"status\":\"Новая\",\"registered_at\":\"2026-11-15T12:00:00Z\"},{\"request_id\":2,\"request_number\":\"REQ-002\",\"description\":\"Оформление договора с поставщиком\",\"applicant_user_id\":2,\"user_name\":\"Jane Smith\",\"category_id\":3,\"category_name\":\"Администрация\",\"priority\":\"Средний\",\"status\":\"Новая\",\"registered_at\":\"2026-11-15T11:00:00Z\"}],\"total_count\":7,\"filtered_count\":7,\"returned_count\":7,\"limit\":100,\"offset\":0,\"has_next\":false,\"has_previous\":false}"
+        }
+      ]
+    },
+    {
+      "name": "10. Pagination limit=5 offset=0",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "http://localhost:8000/api/requests?limit=5&offset=0",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "8000",
+          "path": ["api", "requests"],
+          "query": [
+            {
+              "key": "limit",
+              "value": "5"
+            },
+            {
+              "key": "offset",
+              "value": "0"
+            }
+          ]
+        },
+        "description": "Pagination with limit=5 and offset=0 (first page)"
+      },
+      "response": [
+        {
+          "name": "200 OK",
+          "originalRequest": {
+            "method": "GET",
+            "url": "http://localhost:8000/api/requests?limit=5&offset=0"
+          },
+          "status": "OK",
+          "code": 200,
+          "body": "{\"requests\":[{\"request_id\":1,\"request_number\":\"REQ-001\",\"description\":\"Требуется новое оборудование для отдела IT\",\"applicant_user_id\":1,\"user_name\":\"John Doe\",\"category_id\":1,\"category_name\":\"IT\",\"priority\":\"Высокий\",\"status\":\"Новая\",\"registered_at\":\"2026-11-15T12:00:00Z\"},{\"request_id\":2,\"request_number\":\"REQ-002\",\"description\":\"Оформление договора с поставщиком\",\"applicant_user_id\":2,\"user_name\":\"Jane Smith\",\"category_id\":3,\"category_name\":\"Администрация\",\"priority\":\"Средний\",\"status\":\"Новая\",\"registered_at\":\"2026-11-15T11:00:00Z\"}],\"total_count\":7,\"filtered_count\":7,\"returned_count\":5,\"limit\":5,\"offset\":0,\"has_next\":true,\"has_previous\":false}"
+        }
+      ]
+    },
+    {
+      "name": "11. Pagination limit=10 page=2",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "http://localhost:8000/api/requests?limit=10&page=2",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "8000",
+          "path": ["api", "requests"],
+          "query": [
+            {
+              "key": "limit",
+              "value": "10"
+            },
+            {
+              "key": "page",
+              "value": "2"
+            }
+          ]
+        },
+        "description": "Pagination using page parameter (page=2 with limit=10)"
+      },
+      "response": [
+        {
+          "name": "200 OK",
+          "originalRequest": {
+            "method": "GET",
+            "url": "http://localhost:8000/api/requests?limit=10&page=2"
+          },
+          "status": "OK",
+          "code": 200,
+          "body": "{\"requests\":[],\"total_count\":7,\"filtered_count\":7,\"returned_count\":0,\"limit\":10,\"offset\":10,\"has_next\":false,\"has_previous\":true}"
+        }
+      ]
+    },
+    {
+      "name": "12. Complex query (filters + search + sort + pagination)",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "http://localhost:8000/api/requests?user_id=1&status=Новая&search=оборудование&sort_by=created_at&sort_order=desc&limit=10&offset=0",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "8000",
+          "path": ["api", "requests"],
+          "query": [
+            {
+              "key": "user_id",
+              "value": "1"
+            },
+            {
+              "key": "status",
+              "value": "Новая"
+            },
+            {
+              "key": "search",
+              "value": "оборудование"
+            },
+            {
+              "key": "sort_by",
+              "value": "created_at"
+            },
+            {
+              "key": "sort_order",
+              "value": "desc"
+            },
+            {
+              "key": "limit",
+              "value": "10"
+            },
+            {
+              "key": "offset",
+              "value": "0"
+            }
+          ]
+        },
+        "description": "Complex query combining filters, search, sorting, and pagination"
+      },
+      "response": [
+        {
+          "name": "200 OK",
+          "originalRequest": {
+            "method": "GET",
+            "url": "http://localhost:8000/api/requests?user_id=1&status=Новая&search=оборудование&sort_by=created_at&sort_order=desc&limit=10&offset=0"
+          },
+          "status": "OK",
+          "code": 200,
+          "body": "{\"requests\":[{\"request_id\":1,\"request_number\":\"REQ-001\",\"description\":\"Требуется новое оборудование для отдела IT\",\"applicant_user_id\":1,\"user_name\":\"John Doe\",\"category_id\":1,\"category_name\":\"IT\",\"priority\":\"Высокий\",\"status\":\"Новая\",\"registered_at\":\"2026-11-15T12:00:00Z\"}],\"total_count\":7,\"filtered_count\":1,\"returned_count\":1,\"limit\":10,\"offset\":0,\"has_next\":false,\"has_previous\":false}"
+        }
+      ]
+    },
+    {
+      "name": "13. Filter by account_name (substring)",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "http://localhost:8000/api/requests?account_name=john",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "8000",
+          "path": ["api", "requests"],
+          "query": [
+            {
+              "key": "account_name",
+              "value": "john"
+            }
+          ]
+        },
+        "description": "Filter by account_name substring (case-insensitive)"
+      },
+      "response": [
+        {
+          "name": "200 OK",
+          "originalRequest": {
+            "method": "GET",
+            "url": "http://localhost:8000/api/requests?account_name=john"
+          },
+          "status": "OK",
+          "code": 200,
+          "body": "{\"requests\":[{\"request_id\":1,\"request_number\":\"REQ-001\",\"description\":\"Требуется новое оборудование для отдела IT\",\"applicant_user_id\":1,\"user_name\":\"John Doe\",\"category_id\":1,\"category_name\":\"IT\",\"priority\":\"Высокий\",\"status\":\"Новая\",\"registered_at\":\"2026-11-15T12:00:00Z\"}],\"total_count\":7,\"filtered_count\":1,\"returned_count\":1,\"limit\":10,\"offset\":0,\"has_next\":false,\"has_previous\":false}"
+        }
+      ]
+    }
+  ]
+}
