@@ -178,3 +178,51 @@ prune:
 	@echo "Cleaning up unused Docker resources..."
 	docker system prune -f
 	@echo "Cleanup complete"
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# Remote Deployment Commands
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+setup-ssh:
+	@echo "Setting up SSH keys for deployment..."
+	bash scripts/setup-ssh-keys.sh
+
+deploy-vps:
+	@read -p "Enter VPS IP address: " ip; \
+	read -p "Enter VPS username (default: ubuntu): " user; \
+	user=$${user:-ubuntu}; \
+	read -p "Enter SSH port (default: 22): " port; \
+	port=$${port:-22}; \
+	echo "Deploying to $$user@$$ip:$$port..."; \
+	bash scripts/remote-deploy.sh $$ip $$user $$port
+
+push-code:
+	@read -p "Enter VPS IP address: " ip; \
+	read -p "Enter VPS username (default: ubuntu): " user; \
+	user=$${user:-ubuntu}; \
+	read -p "Enter SSH port (default: 22): " port; \
+	port=$${port:-22}; \
+	echo "Pushing code to $$user@$$ip:$$port..."; \
+	bash scripts/push-to-server.sh $$ip $$user $$port
+
+remote-logs:
+	@read -p "Enter VPS IP address: " ip; \
+	read -p "Enter VPS username (default: ubuntu): " user; \
+	user=$${user:-ubuntu}; \
+	read -p "Enter SSH port (default: 22): " port; \
+	port=$${port:-22}; \
+	ssh -p $$port $$user@$$ip "cd /opt/request-system && docker-compose logs -f app"
+
+remote-health:
+	@read -p "Enter VPS IP address: " ip; \
+	read -p "Enter SSH port (default: 22): " port; \
+	port=$${port:-22}; \
+	curl -s http://$$ip:8000/health | jq . || echo "Health check failed"
+
+remote-shell:
+	@read -p "Enter VPS IP address: " ip; \
+	read -p "Enter VPS username (default: ubuntu): " user; \
+	user=$${user:-ubuntu}; \
+	read -p "Enter SSH port (default: 22): " port; \
+	port=$${port:-22}; \
+	ssh -p $$port $$user@$$ip
