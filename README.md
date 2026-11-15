@@ -209,6 +209,77 @@ APP_PORT=9000 APP_DEBUG=false python -m uvicorn src.request_system.presentation.
 $env:APP_PORT=9000; $env:APP_DEBUG="false"; python -m uvicorn src.request_system.presentation.main:app
 ```
 
+### 🔒 Безопасность
+
+#### Защита от утечки секретов
+
+**Никогда не коммитьте файл `.env`!** Система разработана так, чтобы минимизировать риск утечки чувствительных данных.
+
+**Что уже защищено:**
+- ✅ Файл `.env` добавлен в `.gitignore` и не попадёт в Git
+- ✅ `.env.example` содержит только шаблоны и примеры без реальных секретов
+- ✅ В исходном коде нет хардкодированных паролей, ключей или токенов
+- ✅ Все чувствительные данные загружаются только из переменных окружения
+
+**Best Practices безопасности:**
+
+1. **Локальная разработка:**
+   ```bash
+   # ПРАВИЛЬНО: используйте .env файл
+   cp .env.example .env
+   # Отредактируйте .env с вашими значениями
+   # .env автоматически игнорируется Git
+   
+   # НЕПРАВИЛЬНО: не коммитьте реальные значения
+   # git commit .env  # ❌ ОПАСНО!
+   ```
+
+2. **Production развертывание:**
+   ```bash
+   # ПРАВИЛЬНО: устанавливайте переменные окружения на сервере
+   export APP_ENV=production
+   export DATABASE_URL=postgresql://user:pass@prod-db/db
+   export LOG_LEVEL=WARNING
+   
+   # Или через system environment, Docker, Kubernetes secrets, CI/CD, и т.д.
+   # НИКОГДА не коммитьте .env в production
+   ```
+
+3. **Что считается чувствительными данными:**
+   - 🔐 Пароли к БД
+   - 🔐 API ключи и токены
+   - 🔐 Private keys и сертификаты
+   - 🔐 Credentials и авторизационные данные
+   - 🔐 Secret keys для криптографии
+   - 🔐 URLs с паролями (e.g., `postgresql://user:password@host`)
+
+4. **Проверка перед коммитом:**
+   ```bash
+   # Убедитесь что .env не в Git
+   git status | grep ".env"  # Не должно быть результатов
+   
+   # Проверьте историю (если случайно закоммитили)
+   git log --all --full-history -- ".env"
+   
+   # Если обнаружили утечку - сразу удалите
+   git filter-branch --tree-filter 'rm -f .env' HEAD
+   ```
+
+5. **Для CI/CD систем:**
+   ```yaml
+   # GitHub Actions пример (НЕ коммитьте реальные значения!)
+   env:
+     APP_ENV: ${{ secrets.APP_ENV }}
+     DATABASE_URL: ${{ secrets.DATABASE_URL }}
+     LOG_LEVEL: ${{ secrets.LOG_LEVEL }}
+   ```
+
+**Аудит безопасности:**
+- ✅ Проверено: нет `.env` файла в Git истории
+- ✅ Проверено: нет хардкодированных секретов в коде
+- ✅ Проверено: `.gitignore` правильно настроен
+- ✅ Проверено: `.env.example` содержит только примеры
+
 ### Инициализация базы данных
 
 Приложение автоматически создаёт таблицы при первом запуске в файл `request-system.db`. Вы также можете инициализировать схему вручную:
