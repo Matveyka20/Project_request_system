@@ -24,9 +24,12 @@ help:
 	@echo "  make monitor      - Run health monitor script"
 	@echo ""
 	@echo "Database:"
-	@echo "  make backup       - Backup PostgreSQL database"
+	@echo "  make init-db      - Initialize database with schema and seed data"
+	@echo "  make reset-db     - Reset database (delete and reinitialize)"
+	@echo "  make seed-db      - Load seed data into existing database"
+	@echo "  make backup       - Backup SQLite database"
 	@echo "  make restore      - Restore from backup (requires BACKUP_FILE)"
-	@echo "  make db-shell     - Access PostgreSQL shell"
+	@echo "  make db-shell     - Access SQLite database shell"
 	@echo ""
 	@echo "Maintenance:"
 	@echo "  make clean        - Remove containers and volumes"
@@ -35,8 +38,9 @@ help:
 	@echo "Examples:"
 	@echo "  make logs                            # Follow app logs"
 	@echo "  make health                          # Check health"
+	@echo "  make init-db                         # Initialize database"
 	@echo "  make backup                          # Create backup"
-	@echo "  make restore BACKUP_FILE=backup.sql  # Restore backup"
+	@echo "  make restore BACKUP_FILE=backup.db   # Restore backup"
 
 # Build
 build:
@@ -98,32 +102,59 @@ status:
 monitor:
 	bash scripts/monitor.sh
 
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# Database Commands
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+# Initialize database with schema and seed data
+init-db:
+	@echo "Initializing database with schema and seed data..."
+	bash scripts/init-db.sh
+
+# Reset database (delete and reinitialize)
+reset-db:
+	@echo "Resetting database..."
+	bash scripts/init-db.sh --reset
+
+# Load seed data into existing database
+seed-db:
+	@echo "Loading seed data..."
+	python3 -m request_system.scripts.load_seed_data
+
 # Database backup
 backup:
 	@TIMESTAMP=$$(date +%Y%m%d_%H%M%S); \
-	echo "Creating backup: backup_$$TIMESTAMP.sql"; \
-	docker-compose exec -T db pg_dump -U postgres requests_db > backup_$$TIMESTAMP.sql; \
-	gzip backup_$$TIMESTAMP.sql; \
-	echo "Backup created: backup_$$TIMESTAMP.sql.gz"
+	echo "Creating backup: requests_$$TIMESTAMP.db"; \
+	cp requests.db backup_requests_$$TIMESTAMP.db; \
+	gzip backup_requests_$$TIMESTAMP.db; \
+	echo "Backup created: backup_requests_$$TIMESTAMP.db.gz"
 
 # Database restore
 restore:
 	@if [ -z "$(BACKUP_FILE)" ]; then \
 		echo "Error: BACKUP_FILE not specified"; \
-		echo "Usage: make restore BACKUP_FILE=backup_20241115.sql"; \
+		echo "Usage: make restore BACKUP_FILE=backup_20241115.db"; \
 		exit 1; \
 	fi
 	@echo "Restoring from: $(BACKUP_FILE)"
 	@if [ "$$(echo $(BACKUP_FILE) | grep -c '.gz$$')" -eq 1 ]; then \
-		gunzip -c $(BACKUP_FILE) | docker-compose exec -T db psql -U postgres requests_db; \
+		gunzip -c $(BACKUP_FILE) > requests.db; \
 	else \
-		docker-compose exec -T db psql -U postgres requests_db < $(BACKUP_FILE); \
+		cp $(BACKUP_FILE) requests.db; \
 	fi
-	@echo "Database restored"
+	@echo "Database restored from $(BACKUP_FILE)"
 
 # Database shell
 db-shell:
-	docker-compose exec db psql -U postgres -d requests_db
+	sqlite3 requests.db
+
+# Database stats
+db-stats:
+	@sqlite3 requests.db "SELECT 'Users' as table_name, COUNT(*) as count FROM Users UNION ALL SELECT 'Requests', COUNT(*) FROM Requests UNION ALL SELECT 'Comments', COUNT(*) FROM Comments UNION ALL SELECT 'Categories', COUNT(*) FROM Categories UNION ALL SELECT 'Statuses', COUNT(*) FROM Statuses;"
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# Remote Deployment Commands
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 # Clean up
 clean:
@@ -180,49 +211,51 @@ prune:
 	@echo "Cleanup complete"
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-# Remote Deployment Commands
+# Database Commands
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-setup-ssh:
-	@echo "Setting up SSH keys for deployment..."
-	bash scripts/setup-ssh-keys.sh
+# Initialize database with schema and seed data
+init-db:
+	@echo "Initializing database with schema and seed data..."
+	bash scripts/init-db.sh
 
-deploy-vps:
-	@read -p "Enter VPS IP address: " ip; \
-	read -p "Enter VPS username (default: ubuntu): " user; \
-	user=$${user:-ubuntu}; \
-	read -p "Enter SSH port (default: 22): " port; \
-	port=$${port:-22}; \
-	echo "Deploying to $$user@$$ip:$$port..."; \
-	bash scripts/remote-deploy.sh $$ip $$user $$port
+# Reset database (delete and reinitialize)
+reset-db:
+	@echo "Resetting database..."
+	bash scripts/init-db.sh --reset
 
-push-code:
-	@read -p "Enter VPS IP address: " ip; \
-	read -p "Enter VPS username (default: ubuntu): " user; \
-	user=$${user:-ubuntu}; \
-	read -p "Enter SSH port (default: 22): " port; \
-	port=$${port:-22}; \
-	echo "Pushing code to $$user@$$ip:$$port..."; \
-	bash scripts/push-to-server.sh $$ip $$user $$port
+# Load seed data into existing database
+seed-db:
+	@echo "Loading seed data..."
+	python3 -m request_system.scripts.load_seed_data
 
-remote-logs:
-	@read -p "Enter VPS IP address: " ip; \
-	read -p "Enter VPS username (default: ubuntu): " user; \
-	user=$${user:-ubuntu}; \
-	read -p "Enter SSH port (default: 22): " port; \
-	port=$${port:-22}; \
-	ssh -p $$port $$user@$$ip "cd /opt/request-system && docker-compose logs -f app"
+# Database backup
+backup:
+	@TIMESTAMP=$$(date +%Y%m%d_%H%M%S); \
+	echo "Creating backup: requests_$$TIMESTAMP.db"; \
+	cp requests.db backup_requests_$$TIMESTAMP.db; \
+	gzip backup_requests_$$TIMESTAMP.db; \
+	echo "Backup created: backup_requests_$$TIMESTAMP.db.gz"
 
-remote-health:
-	@read -p "Enter VPS IP address: " ip; \
-	read -p "Enter SSH port (default: 22): " port; \
-	port=$${port:-22}; \
-	curl -s http://$$ip:8000/health | jq . || echo "Health check failed"
+# Database restore
+restore:
+	@if [ -z "$(BACKUP_FILE)" ]; then \
+		echo "Error: BACKUP_FILE not specified"; \
+		echo "Usage: make restore BACKUP_FILE=backup_20241115.db"; \
+		exit 1; \
+	fi
+	@echo "Restoring from: $(BACKUP_FILE)"
+	@if [ "$$(echo $(BACKUP_FILE) | grep -c '.gz$$')" -eq 1 ]; then \
+		gunzip -c $(BACKUP_FILE) > requests.db; \
+	else \
+		cp $(BACKUP_FILE) requests.db; \
+	fi
+	@echo "Database restored from $(BACKUP_FILE)"
 
-remote-shell:
-	@read -p "Enter VPS IP address: " ip; \
-	read -p "Enter VPS username (default: ubuntu): " user; \
-	user=$${user:-ubuntu}; \
-	read -p "Enter SSH port (default: 22): " port; \
-	port=$${port:-22}; \
-	ssh -p $$port $$user@$$ip
+# Database shell
+db-shell:
+	sqlite3 requests.db
+
+# Database stats
+db-stats:
+	@sqlite3 requests.db "SELECT 'Users' as table_name, COUNT(*) as count FROM Users UNION ALL SELECT 'Requests', COUNT(*) FROM Requests UNION ALL SELECT 'Comments', COUNT(*) FROM Comments UNION ALL SELECT 'Categories', COUNT(*) FROM Categories UNION ALL SELECT 'Statuses', COUNT(*) FROM Statuses;"
