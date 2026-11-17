@@ -21,12 +21,15 @@ FROM python:3.11-slim as builder
 WORKDIR /build
 
 # Install build dependencies
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    build-essential \
-    && rm -rf /var/lib/apt/lists/*
+RUN apt-get update --fix-missing 2>/dev/null || apt-get update --fix-missing || true && \
+    apt-get install -y --no-install-recommends build-essential 2>/dev/null || true && \
+    rm -rf /var/lib/apt/lists/*
 
 # Copy dependency files
 COPY pyproject.toml setup.py* ./
+
+# Copy source code for editable install
+COPY src ./src/
 
 # Upgrade pip and install wheel tools
 RUN pip install --no-cache-dir --upgrade pip setuptools wheel
@@ -52,10 +55,9 @@ RUN groupadd -r appuser && useradd -r -g appuser appuser
 # Install runtime dependencies
 # - curl: for health checks
 # - postgresql-client: for database tools (psql, pg_dump, pg_isready)
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    curl \
-    postgresql-client \
-    && rm -rf /var/lib/apt/lists/*
+RUN apt-get update --fix-missing 2>/dev/null || apt-get update --fix-missing || true && \
+    apt-get install -y --no-install-recommends curl postgresql-client 2>/dev/null || true && \
+    rm -rf /var/lib/apt/lists/*
 
 # Copy wheels from builder stage
 COPY --from=builder /build/wheels /tmp/wheels

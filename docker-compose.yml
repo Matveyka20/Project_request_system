@@ -41,7 +41,8 @@ services:
       APP_WORKERS: ${APP_WORKERS:-4}
       APP_NAME: ${APP_NAME:-Request System}
       # Database configuration (supports both SQLite and PostgreSQL)
-      DATABASE_URL: ${DATABASE_URL:-sqlite:///./requests.db}
+      # Use /tmp for SQLite to ensure writable permissions for appuser
+      DATABASE_URL: ${DATABASE_URL:-sqlite:////tmp/requests.db}
       DATABASE_POOL_SIZE: ${DATABASE_POOL_SIZE:-10}
       DATABASE_ECHO_SQL: ${DATABASE_ECHO_SQL:-false}
       # Optional Redis for caching
